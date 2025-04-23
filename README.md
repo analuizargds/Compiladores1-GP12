@@ -57,7 +57,7 @@ gcc -o exemplo -I./parser ./parser/exemplo.tab.c ./lexer/lex.yy.c -lfl
 
 ## Colaboradores - Grupo 12
 
-<div  class="HomeProfiles" style="justify-content: space-around; flex-wrap: wrap; display: flex;">
+<div  class="HomeProfiles" style="justify-content: center; display: flex; flex-direction: column">
 
 <a href="https://github.com/analuizargds" target="_blank">
     <figure>
