@@ -18,6 +18,7 @@ extern FILE *yyin;
 %token EQ ASSIGN PLUS MINUS MULT DIV
 %token SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
+%token INT FLOAT CHAR VOID DOUBLE
 
 /* Declaração de precedência e associatividade */
 %left ASSIGN
@@ -49,6 +50,7 @@ declaracoes:
 
 declaracao:
     comando
+    | declaracao_variavel SEMICOLON    
     ;
 
 comando:
@@ -75,6 +77,28 @@ expressao:
     | NUM
     | ID
     | STRING
+    ;
+
+declaracao_variavel:
+    tipo lista_variaveis
+    ;
+
+tipo:
+    TIPO_INT
+    | TIPO_FLOAT
+    | TIPO_CHAR
+    | TIPO_VOID
+    | TIPO_DOUBLE
+    ;
+
+lista_variaveis:
+    variavel
+    | lista_variaveis ',' variavel
+    ;
+
+variavel:
+    ID
+    | ID ASSIGN expressao
     ;
 
 %%
