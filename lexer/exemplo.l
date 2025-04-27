@@ -8,16 +8,26 @@
 
 [ \t\n]+              { /* Não faz nada, apenas ignora */ }
 
+"int"     { printf("Reconhecido: INT\n"); return INT; }
+"float"   { printf("Reconhecido: FLOAT\n"); return FLOAT; }
+"char"    { printf("Reconhecido: CHAR\n"); return CHAR; }
+"void"    { printf("Reconhecido: VOID\n"); return VOID; }
+"double"  { printf("Reconhecido: DOUBLE\n"); return DOUBLE; }
+
 [+\-]?[0-9]{1,10}     {
                         printf("Reconhecido: NUM (%s)\n", yytext);
                         yylval.intValue = atoi(yytext);
                         return NUM;
                       }
 
-"if"    { printf("Reconhecido: IF\n"); return IF; }
-"else"  { printf("Reconhecido: ELSE\n"); return ELSE; }
+"if" { printf("Reconhecido: IF\n"); return IF; }
+"else" { printf("Reconhecido: ELSE\n"); return ELSE; }
 "while" { printf("Reconhecido: WHILE\n"); return WHILE; }
 "return" { printf("Reconhecido: RETURN\n"); return RETURN; }
+"for" {printf("Reconhecido: FOR\n"); return FOR;}
+"do" {printf("Reconhecido: DO\n"); return DO;}
+"continue" {printf("Reconhecido: RETURN\n"); return CONTINUE;}
+
 
 [a-zA-Z_][a-zA-Z0-9_]* { 
                          printf("Reconhecido: ID (%s)\n", yytext);
@@ -43,6 +53,7 @@
                        yylval.strValue = strdup(yytext);
                        return STRING; 
                      }
+
 
 .    { printf("Caractere não reconhecido: %s\n", yytext); }
 
