@@ -12,4 +12,4 @@ union Valor {
 
 enum Status {
     ATIVO, INATIVO
-};
+}
