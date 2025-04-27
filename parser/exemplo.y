@@ -20,7 +20,7 @@ extern FILE *yyin;
 %token STRING
 %token INT FLOAT CHAR VOID DOUBLE
 %token STRUCT UNION ENUM TYPEDEF 
-%token HEX OCT DIGIT CARACT
+%token HEX CARACT
 
 /* Declaração de precedência e associatividade */
 %left ASSIGN
@@ -102,15 +102,6 @@ enum_declaracao:
 
 typedef_declaracao:
     TYPEDEF tipo ID SEMICOLON
-    ;
-
-campos_struct:
-    declaracao_campo
-    | campos_struct declaracao_campo
-    ;
-
-declaracao_campo:
-    tipo lista_variaveis SEMICOLON
     ;
 
 lista_identificadores:

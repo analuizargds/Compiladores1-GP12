@@ -57,16 +57,6 @@ extern FILE *yyin;
                         yylval.intValue = strtol(yytext, NULL, 16);
                         return HEX; 
                       }
-0[0-7]+ { 
-                        printf("Reconhecido: OCT (%s)\n", yytext);
-                        yylval.intValue = strtol(yytext, NULL, 8);
-                        return OCT; 
-                      }
-[0-9]+ { 
-                        printf("Reconhecido: DIGIT (%s)\n", yytext);
-                        yylval.intValue = atoi(yytext);
-                        return DIGIT; 
-                      }
 
 \"[^\"]*\"           { 
                        printf("Reconhecido: STRING (%s)\n", yytext);
@@ -75,9 +65,9 @@ extern FILE *yyin;
                      }
 
 '\\.?.'         { 
-                       printf("Reconhecido: CHAR (%s)\n", yytext);
+                       printf("Reconhecido: CARACT (%s)\n", yytext);
                        yylval.strValue = strdup(yytext);
-                       return CHAR; 
+                       return CARACT; 
                      }
 
 .    { printf("Caractere não reconhecido: %s\n", yytext); }
