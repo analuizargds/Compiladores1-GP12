@@ -8,7 +8,7 @@ extern FILE *yyin;
 /* Definições de padrões de token e ações */
 %%
 
-[ \t\n]+              { /* Não faz nada, apenas ignora */ }
+[ \t\r\n]+              { /* Não faz nada, apenas ignora */ }
 
 "typedef" { printf("Reconhecido: TYPEDEF\n"); return TYPEDEF; }
 "struct" { printf("Reconhecido: STRUCT\n"); return STRUCT; }
