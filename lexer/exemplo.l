@@ -31,6 +31,7 @@
 "-"     { printf("Reconhecido: MINUS\n"); return MINUS; }
 "*"     { printf("Reconhecido: MULT\n"); return MULT; }
 "/"     { printf("Reconhecido: DIV\n"); return DIV; }
+","     { printf("Reconhecido: COMMA\n"); return COMMA; }
 
 ";"     { printf("Reconhecido: SEMICOLON\n"); return SEMICOLON; }
 "{"     { printf("Reconhecido: LBRACE\n"); return LBRACE; }
