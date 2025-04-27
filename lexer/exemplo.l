@@ -10,12 +10,6 @@ extern FILE *yyin;
 
 [ \t\n]+              { /* Não faz nada, apenas ignora */ }
 
-[+\-]?[0-9]{1,10}     {
-                        printf("Reconhecido: NUM (%s)\n", yytext);
-                        yylval.intValue = atoi(yytext);
-                        return NUM;
-                      }
-
 "int"     { printf("Reconhecido: INT\n"); return INT; }
 "float"   { printf("Reconhecido: FLOAT\n"); return FLOAT; }
 "char"    { printf("Reconhecido: CHAR\n"); return CHAR; }
