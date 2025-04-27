@@ -16,16 +16,16 @@ extern FILE *yyin;
 "void"    { printf("Reconhecido: VOID\n"); return VOID; }
 "double"  { printf("Reconhecido: DOUBLE\n"); return DOUBLE; }
 
+"if"    { printf("Reconhecido: IF\n"); return IF; }
+"else"  { printf("Reconhecido: ELSE\n"); return ELSE; }
+"while" { printf("Reconhecido: WHILE\n"); return WHILE; }
+"return" { printf("Reconhecido: RETURN\n"); return RETURN; }
+
 [+\-]?[0-9]{1,10}     {
                         printf("Reconhecido: NUM (%s)\n", yytext);
                         yylval.intValue = atoi(yytext);
                         return NUM;
                       }
-
-"if"    { printf("Reconhecido: IF\n"); return IF; }
-"else"  { printf("Reconhecido: ELSE\n"); return ELSE; }
-"while" { printf("Reconhecido: WHILE\n"); return WHILE; }
-"return" { printf("Reconhecido: RETURN\n"); return RETURN; }
 
 [a-zA-Z_][a-zA-Z0-9_]* { 
                          printf("Reconhecido: ID (%s)\n", yytext);
