@@ -19,7 +19,8 @@ extern FILE *yyin;
 %token SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
 %token INT FLOAT CHAR VOID DOUBLE
-%token STRUCT UNION ENUM TYPEDEF
+%token STRUCT UNION ENUM TYPEDEF 
+%token HEX OCT DIGIT CARACT
 
 /* Declaração de precedência e associatividade */
 %left ASSIGN
@@ -50,8 +51,58 @@ declaracoes:
     ;
 
 declaracao:
-    comando
-    | declaracao_variavel SEMICOLON    
+    declaracao_variavel SEMICOLON
+    | comando
+    ;
+
+declaracao_variavel:
+    tipo lista_variaveis
+    | typedef_declaracao
+    | struct_declaracao
+    | union_declaracao
+    | enum_declaracao
+    ;
+
+tipo:
+    INT
+    | FLOAT
+    | CHAR
+    | VOID
+    | DOUBLE
+    | STRUCT ID
+    | UNION ID
+    | ENUM ID
+    ;
+
+lista_variaveis:
+    variavel
+    | lista_variaveis ',' variavel
+    ;
+
+variavel:
+    ID
+    | ID ASSIGN expressao
+    ;
+
+struct_declaracao:
+    STRUCT ID LBRACE declaracoes RBRACE SEMICOLON
+    ;
+
+union_declaracao:
+    UNION ID LBRACE declaracoes RBRACE SEMICOLON
+    ;
+
+enum_declaracao:
+    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON
+    ;
+
+lista_identificadores:
+    ID
+    | lista_identificadores ',' ID
+    ;
+
+typedef_declaracao:
+    TYPEDEF tipo ID SEMICOLON
     ;
 
 comando:
@@ -78,53 +129,6 @@ expressao:
     | NUM
     | ID
     | STRING
-    ;
-
-declaracao_variavel:
-    tipo lista_variaveis
-    | tipo struct_declaracao SEMICOLON
-    | tipo union_declaracao SEMICOLON
-    | tipo enum_declaracao SEMICOLON
-    | typedef_declaracao SEMICOLON
-    ;
-
-tipo:
-    INT
-    | FLOAT
-    | CHAR
-    | VOID
-    | DOUBLE
-    | STRUCT ID
-    | UNION ID
-    | ENUM ID
-    ;
-
-struct_declaracao:
-    STRUCT ID LBRACE declaracoes RBRACE
-    ;
-
-union_declaracao:
-    UNION ID LBRACE declaracoes RBRACE
-    ;
-
-enum_declaracao:
-    ENUM ID LBRACE lista_variaveis RBRACE
-    ;   
-
-typedef_declaracao:
-    TYPEDEF tipo ID SEMICOLON
-    | TYPEDEF ID ID SEMICOLON
-    ;
-
-
-lista_variaveis:
-    variavel
-    | lista_variaveis ',' variavel
-    ;
-
-variavel:
-    ID
-    | ID ASSIGN expressao
     ;
 
 %%
