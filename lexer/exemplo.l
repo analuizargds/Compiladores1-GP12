@@ -10,6 +10,11 @@ extern FILE *yyin;
 
 [ \t\n]+              { /* Não faz nada, apenas ignora */ }
 
+"typedef" { printf("Reconhecido: TYPEDEF\n"); return TYPEDEF; }
+"struct" { printf("Reconhecido: STRUCT\n"); return STRUCT; }
+"union"  { printf("Reconhecido: UNION\n"); return UNION; }
+"enum"   { printf("Reconhecido: ENUM\n"); return ENUM; }
+
 "int"     { printf("Reconhecido: INT\n"); return INT; }
 "float"   { printf("Reconhecido: FLOAT\n"); return FLOAT; }
 "char"    { printf("Reconhecido: CHAR\n"); return CHAR; }
@@ -46,10 +51,32 @@ extern FILE *yyin;
 "("     { printf("Reconhecido: LPAREN\n"); return LPAREN; }
 ")"     { printf("Reconhecido: RPAREN\n"); return RPAREN; }
 
+0[xX][0-9a-fA-F]+ { 
+                        printf("Reconhecido: HEX (%s)\n", yytext);
+                        yylval.intValue = strtol(yytext, NULL, 16);
+                        return HEX; 
+                      }
+0[0-7]+ { 
+                        printf("Reconhecido: OCT (%s)\n", yytext);
+                        yylval.intValue = strtol(yytext, NULL, 8);
+                        return OCT; 
+                      }
+[0-9]+ { 
+                        printf("Reconhecido: DIGIT (%s)\n", yytext);
+                        yylval.intValue = atoi(yytext);
+                        return DIGIT; 
+                      }
+
 \"[^\"]*\"           { 
                        printf("Reconhecido: STRING (%s)\n", yytext);
                        yylval.strValue = strdup(yytext);
                        return STRING; 
+                     }
+
+'\\.?.'         { 
+                       printf("Reconhecido: CHAR (%s)\n", yytext);
+                       yylval.strValue = strdup(yytext);
+                       return CHAR; 
                      }
 
 .    { printf("Caractere não reconhecido: %s\n", yytext); }
