@@ -13,7 +13,7 @@ extern FILE *yyin;
 %}
 
 %token NUM
-%token IF ELSE WHILE RETURN
+%token IF ELSE WHILE RETURN FOR DO CONTINUE
 %token ID
 %token EQ ASSIGN PLUS MINUS MULT DIV
 %token SEMICOLON LBRACE RBRACE LPAREN RPAREN
@@ -54,6 +54,9 @@ declaracao:
 comando:
     IF LPAREN expressao RPAREN comando %prec IFX
     | IF LPAREN expressao RPAREN comando ELSE comando
+    | DO comando WHILE LPAREN expressao RPAREN SEMICOLON
+    | FOR LPAREN declaracao SEMICOLON expressao SEMICOLON expressao RPAREN comando
+    | CONTINUE SEMICOLON
     | WHILE LPAREN expressao RPAREN comando
     | RETURN expressao SEMICOLON
     | expressao SEMICOLON
@@ -75,6 +78,28 @@ expressao:
     | NUM
     | ID
     | STRING
+    ;
+
+declaracao_variavel:
+    tipo lista_variaveis
+    ;
+
+tipo:
+    INT
+    | FLOAT
+    | CHAR
+    | VOID
+    | DOUBLE
+    ;
+
+lista_variaveis:
+    variavel
+    | lista_variaveis ',' variavel
+    ;
+
+variavel:
+    ID
+    | ID ASSIGN expressao
     ;
 
 %%
