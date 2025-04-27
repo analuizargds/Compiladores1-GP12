@@ -1,0 +1,22 @@
+typedef int inteiro;
+
+struct Pessoa {
+    int idade;
+    char nome;
+};
+
+union Dados {
+    int inteiro;
+    float real;
+};
+
+enum Cores {
+    VERMELHO, VERDE, AZUL
+};
+
+int main() {
+    int x = 0x1A3F;
+    int y = 0755;
+    char c = 'a';
+    char quebra_linha = '\\n';
+}
