@@ -30,6 +30,10 @@ extern FILE *yyin;
 
 "if"    { printf("Reconhecido: IF\n"); return IF; }
 "else"  { printf("Reconhecido: ELSE\n"); return ELSE; }
+"switch" { printf("Reconhecido: SWITCH\n"); return SWITCH; }
+"case"   { printf("Reconhecido: CASE\n"); return CASE; }
+"default" { printf("Reconhecido: DEFAULT\n"); return DEFAULT; } 
+"break"  { printf("Reconhecido: BREAK\n"); return BREAK; } 
 "while" { printf("Reconhecido: WHILE\n"); return WHILE; }
 "return" { printf("Reconhecido: RETURN\n"); return RETURN; }
 
@@ -46,6 +50,7 @@ extern FILE *yyin;
 "*"     { printf("Reconhecido: MULT\n"); return MULT; }
 "/"     { printf("Reconhecido: DIV\n"); return DIV; }
 
+":"     { printf("Reconhecido: COLON\n"); return COLON; }
 ";"     { printf("Reconhecido: SEMICOLON\n"); return SEMICOLON; }
 "{"     { printf("Reconhecido: LBRACE\n"); return LBRACE; }
 "}"     { printf("Reconhecido: RBRACE\n"); return RBRACE; }

@@ -13,10 +13,10 @@ extern FILE *yyin;
 %}
 
 %token NUM
-%token IF ELSE WHILE RETURN
+%token IF ELSE SWITCH CASE DEFAULT BREAK WHILE RETURN
 %token ID
 %token EQ ASSIGN PLUS MINUS MULT DIV
-%token SEMICOLON LBRACE RBRACE LPAREN RPAREN
+%token COLON SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
 %token INT FLOAT CHAR VOID DOUBLE
 
@@ -77,6 +77,29 @@ expressao:
     | NUM
     | ID
     | STRING
+    ;
+
+switch_stmt:
+    SWITCH LPAREN expressao RPAREN LBRACE case_list RBRACE
+    ;
+
+case_list:
+    case_list case_stmt
+    | case_stmt
+    ;
+
+case_stmt:
+    CASE expressao COLON comandos_break
+    | DEFAULT COLON comandos_break
+    ;
+
+comandos_break:
+    comandos_opt BREAK SEMICOLON
+    ;
+
+comandos_opt:
+    /* vazio */
+    | declaracoes
     ;
 
 declaracao_variavel:
