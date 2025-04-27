@@ -50,6 +50,7 @@ extern FILE *yyin;
 "}"     { printf("Reconhecido: RBRACE\n"); return RBRACE; }
 "("     { printf("Reconhecido: LPAREN\n"); return LPAREN; }
 ")"     { printf("Reconhecido: RPAREN\n"); return RPAREN; }
+","     { printf("Reconhecido: COMMA\n"); return COMMA; }
 
 0[xX][0-9a-fA-F]+ { 
                         printf("Reconhecido: HEX (%s)\n", yytext);
