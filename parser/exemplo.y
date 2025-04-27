@@ -16,7 +16,7 @@ extern FILE *yyin;
 %token IF ELSE WHILE RETURN
 %token ID
 %token EQ ASSIGN PLUS MINUS MULT DIV
-%token SEMICOLON LBRACE RBRACE LPAREN RPAREN
+%token SEMICOLON LBRACE RBRACE LPAREN RPAREN COMMA
 %token STRING
 %token INT FLOAT CHAR VOID DOUBLE
 %token STRUCT UNION ENUM TYPEDEF 
@@ -53,14 +53,18 @@ declaracoes:
 declaracao:
     declaracao_variavel SEMICOLON
     | comando
+    | declaracao_tipo
+    ;
+
+declaracao_tipo:
+    struct_declaracao
+    | union_declaracao
+    | enum_declaracao
+    | typedef_declaracao
     ;
 
 declaracao_variavel:
     tipo lista_variaveis
-    | typedef_declaracao
-    | struct_declaracao
-    | union_declaracao
-    | enum_declaracao
     ;
 
 tipo:
@@ -76,7 +80,7 @@ tipo:
 
 lista_variaveis:
     variavel
-    | lista_variaveis ',' variavel
+    | lista_variaveis COMMA variavel
     ;
 
 variavel:
@@ -96,13 +100,22 @@ enum_declaracao:
     ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON
     ;
 
-lista_identificadores:
-    ID
-    | lista_identificadores ',' ID
-    ;
-
 typedef_declaracao:
     TYPEDEF tipo ID SEMICOLON
+    ;
+
+campos_struct:
+    declaracao_campo
+    | campos_struct declaracao_campo
+    ;
+
+declaracao_campo:
+    tipo lista_variaveis SEMICOLON
+    ;
+
+lista_identificadores:
+    ID
+    | lista_identificadores COMMA ID
     ;
 
 comando:
