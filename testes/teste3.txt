@@ -1,2 +1,0 @@
-int i, j, k;
-double x = 3, y, z = 7;
