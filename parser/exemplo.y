@@ -2,10 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* 
-   Declarações explícitas para evitar warnings de 
-   "implicit declaration of function yylex/yyerror"
-*/
 int yylex(void);
 void yyerror(const char *s);
 extern FILE *yyin;
@@ -18,65 +14,45 @@ extern FILE *yyin;
 %token EQ ASSIGN PLUS MINUS MULT DIV
 %token SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
+%token COMMA
 %token INT FLOAT CHAR VOID DOUBLE
+%token CHAR_LITERAL
+
 
 /* Declaração de precedência e associatividade */
-%left ASSIGN
+%right ASSIGN
 %left EQ
 %left PLUS MINUS
 %left MULT DIV
-%nonassoc IFX
+%nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 
 %union {
     int intValue;
+    float floatValue;
     char* strValue;
+    char charValue;
 }
 
 %type <intValue> NUM
+%type <floatValue> FLOAT
 %type <strValue> ID STRING
+%type <charValue> CHAR_LITERAL
 
 %%
-/* A gramática */
 programa:
-    declaracoes
+    lista_declaracoes
     ;
 
-declaracoes:
-    declaracao
-    | declaracoes declaracao
-    | /* vazio */
+lista_declaracoes:
+    lista_declaracoes declaracao
+    | declaracao
     ;
 
 declaracao:
-    comando
-    | declaracao_variavel SEMICOLON    
-    ;
-
-comando:
-    IF LPAREN expressao RPAREN comando %prec IFX
-    | IF LPAREN expressao RPAREN comando ELSE comando
-    | WHILE LPAREN expressao RPAREN comando
-    | RETURN expressao SEMICOLON
-    | expressao SEMICOLON
-    | bloco
-    ;
-
-bloco:
-    LBRACE declaracoes RBRACE
-    ;
-
-expressao:
-    ID ASSIGN expressao
-    | expressao EQ expressao
-    | expressao PLUS expressao
-    | expressao MINUS expressao
-    | expressao MULT expressao
-    | expressao DIV expressao
-    | LPAREN expressao RPAREN
-    | NUM
-    | ID
-    | STRING
+    declaracao_variavel SEMICOLON
+    | fun_declaracao
+    | stmt
     ;
 
 declaracao_variavel:
@@ -84,26 +60,124 @@ declaracao_variavel:
     ;
 
 tipo:
-    TIPO_INT
-    | TIPO_FLOAT
-    | TIPO_CHAR
-    | TIPO_VOID
-    | TIPO_DOUBLE
+    INT
+    | FLOAT
+    | CHAR
+    | VOID
+    | DOUBLE
     ;
 
 lista_variaveis:
     variavel
-    | lista_variaveis ',' variavel
+    | lista_variaveis COMMA variavel
     ;
 
 variavel:
     ID
-    | ID ASSIGN expressao
+    | ID ASSIGN expr
+    ;
+
+fun_declaracao:
+    tipo ID LPAREN parametros RPAREN composto_stmt
+    ;
+
+parametros:
+    lista_parametros
+    | /* vazio */
+    ;
+
+lista_parametros:
+    lista_parametros COMMA param
+    | param
+    ;
+
+param:
+    tipo ID
+    ;
+
+stmt:
+    expr_stmt
+    | composto_stmt
+    | if_stmt
+    | while_stmt
+    | return_stmt
+    ;
+
+expr_stmt:
+    expr SEMICOLON
+    | SEMICOLON
+    ;
+
+composto_stmt:
+    LBRACE lista_declaracoes RBRACE
+    ;
+
+if_stmt:
+    IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE
+    | IF LPAREN expr RPAREN stmt ELSE stmt
+    ;
+
+while_stmt:
+    WHILE LPAREN expr RPAREN stmt
+    ;
+
+return_stmt:
+    RETURN expr SEMICOLON
+    | RETURN SEMICOLON
+    ;
+
+expr:
+    var ASSIGN expr
+    | relacao_expr
+    ;
+
+var:
+    ID
+    ;
+
+relacao_expr:
+    add_expr
+    | add_expr EQ add_expr
+    ;
+
+add_expr:
+    add_expr PLUS mult_expr
+    | add_expr MINUS mult_expr
+    | mult_expr
+    ;
+
+mult_expr:
+    mult_expr MULT fator
+    | mult_expr DIV fator
+    | fator
+    ;
+
+fator:
+    LPAREN expr RPAREN
+    | var
+    | chamada
+    | NUM
+    | FLOAT
+    | CHAR_LITERAL
+    | STRING
+    ;
+
+chamada:
+    ID LPAREN argumentos RPAREN
+    ;
+
+argumentos:
+    lista_args
+    | /* vazio */
+    ;
+
+lista_args:
+    lista_args COMMA expr
+    | expr
     ;
 
 %%
 
-/* Definição de yyerror */
 void yyerror(const char *s) {
     fprintf(stderr, "Erro sintático: %s\n", s);
 }

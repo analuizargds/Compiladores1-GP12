@@ -10,6 +10,12 @@ extern FILE *yyin;
 
 [ \t\n]+              { /* Não faz nada, apenas ignora */ }
 
+[+\-]?[0-9]+\.[0-9]+  {
+                        printf("Reconhecido: FLOAT (%s)\n", yytext);
+                        yylval.floatValue = atof(yytext);
+                        return FLOAT;
+                      }
+
 [+\-]?[0-9]{1,10}     {
                         printf("Reconhecido: NUM (%s)\n", yytext);
                         yylval.intValue = atoi(yytext);
@@ -22,16 +28,17 @@ extern FILE *yyin;
 "void"    { printf("Reconhecido: VOID\n"); return VOID; }
 "double"  { printf("Reconhecido: DOUBLE\n"); return DOUBLE; }
 
-[+\-]?[0-9]{1,10}     {
-                        printf("Reconhecido: NUM (%s)\n", yytext);
-                        yylval.intValue = atoi(yytext);
-                        return NUM;
-                      }
-
 "if"    { printf("Reconhecido: IF\n"); return IF; }
 "else"  { printf("Reconhecido: ELSE\n"); return ELSE; }
 "while" { printf("Reconhecido: WHILE\n"); return WHILE; }
 "return" { printf("Reconhecido: RETURN\n"); return RETURN; }
+
+\'[a-zA-Z0-9]\'   {
+    printf("Reconhecido: CHAR_LITERAL (%s)\n", yytext);
+    yylval.charValue = yytext[1]; // O caractere está entre aspas simples
+    return CHAR_LITERAL;
+}
+
 
 [a-zA-Z_][a-zA-Z0-9_]* { 
                          printf("Reconhecido: ID (%s)\n", yytext);
@@ -45,6 +52,7 @@ extern FILE *yyin;
 "-"     { printf("Reconhecido: MINUS\n"); return MINUS; }
 "*"     { printf("Reconhecido: MULT\n"); return MULT; }
 "/"     { printf("Reconhecido: DIV\n"); return DIV; }
+","     { printf("Reconhecido: COMMA\n"); return COMMA; }
 
 ";"     { printf("Reconhecido: SEMICOLON\n"); return SEMICOLON; }
 "{"     { printf("Reconhecido: LBRACE\n"); return LBRACE; }
