@@ -242,32 +242,6 @@ lista_identificadores:
     | lista_identificadores COMMA ID
     ;
 
-comando:
-    IF LPAREN expressao RPAREN comando %prec IFX
-    | IF LPAREN expressao RPAREN comando ELSE comando
-    | WHILE LPAREN expressao RPAREN comando
-    | RETURN expressao SEMICOLON
-    | expressao SEMICOLON
-    | bloco
-    ;
-
-bloco:
-    LBRACE lista_declaracoes RBRACE
-    ;
-
-expressao:
-    ID ASSIGN expressao
-    | expressao EQ expressao
-    | expressao PLUS expressao
-    | expressao MINUS expressao
-    | expressao MULT expressao
-    | expressao DIV expressao
-    | LPAREN expressao RPAREN
-    | NUM
-    | ID
-    | STRING
-    ;
-
 %%
 
 void yyerror(const char *s) {
