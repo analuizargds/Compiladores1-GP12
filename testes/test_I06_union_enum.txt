@@ -1,0 +1,16 @@
+union Valor {
+    int inteiro;
+    float real;
+};
+
+enum Cores {
+    VERMELHO, VERDE, AZUL
+};
+
+int main() {
+    union Valor v;
+    v.inteiro = 10;
+    enum Cores cor;
+    cor = VERDE;
+    return 0;
+}
