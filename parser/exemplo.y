@@ -12,20 +12,21 @@ extern FILE *yyin;
 %token IF ELSE SWITCH CASE DEFAULT BREAK WHILE RETURN
 %token ID
 %token EQ ASSIGN PLUS MINUS MULT DIV
+%token GE LE GT LT
 %token COLON SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
 %token COMMA
 %token INT FLOAT CHAR VOID DOUBLE
 %token CHAR_LITERAL
 
-
 /* Declaração de precedência e associatividade */
 %right ASSIGN
-%left EQ
+%left EQ GE LE GT LT
 %left PLUS MINUS
 %left MULT DIV
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
+%nonassoc IFX
 
 %union {
     int intValue;
@@ -56,7 +57,7 @@ declaracao:
     ;
 
 switch_stmt:
-    SWITCH LPAREN expressao RPAREN LBRACE case_list RBRACE
+    SWITCH LPAREN expr RPAREN LBRACE case_list RBRACE
     ;
 
 case_list:
@@ -65,7 +66,7 @@ case_list:
     ;
 
 case_stmt:
-    CASE expressao COLON comandos_break
+    CASE expr COLON comandos_break
     | DEFAULT COLON comandos_break
     ;
 
@@ -75,7 +76,7 @@ comandos_break:
 
 comandos_opt:
     /* vazio */
-    | declaracoes
+    | lista_declaracoes
     ;
 
 declaracao_variavel:
@@ -124,6 +125,7 @@ stmt:
     | if_stmt
     | while_stmt
     | return_stmt
+    | switch_stmt
     ;
 
 expr_stmt:
@@ -161,6 +163,10 @@ var:
 relacao_expr:
     add_expr
     | add_expr EQ add_expr
+    | add_expr GE add_expr
+    | add_expr LE add_expr
+    | add_expr GT add_expr
+    | add_expr LT add_expr
     ;
 
 add_expr:
