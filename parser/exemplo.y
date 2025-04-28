@@ -15,6 +15,9 @@ extern FILE *yyin;
 %token SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
 %token COMMA
+%token INT FLOAT CHAR VOID DOUBLE
+%token CHAR_LITERAL
+
 
 /* Declaração de precedência e associatividade */
 %right ASSIGN
@@ -26,11 +29,15 @@ extern FILE *yyin;
 
 %union {
     int intValue;
+    float floatValue;
     char* strValue;
+    char charValue;
 }
 
 %type <intValue> NUM
+%type <floatValue> FLOAT
 %type <strValue> ID STRING
+%type <charValue> CHAR_LITERAL
 
 %%
 programa:
@@ -38,17 +45,40 @@ programa:
     ;
 
 lista_declaracoes:
-    lista_declaracoes declaracao 
+    lista_declaracoes declaracao
     | declaracao
     ;
 
 declaracao:
-    fun_declaracao
+    declaracao_variavel SEMICOLON
+    | fun_declaracao
     | stmt
     ;
 
+declaracao_variavel:
+    tipo lista_variaveis
+    ;
+
+tipo:
+    INT
+    | FLOAT
+    | CHAR
+    | VOID
+    | DOUBLE
+    ;
+
+lista_variaveis:
+    variavel
+    | lista_variaveis COMMA variavel
+    ;
+
+variavel:
+    ID
+    | ID ASSIGN expr
+    ;
+
 fun_declaracao:
-    ID LPAREN parametros RPAREN composto_stmt
+    tipo ID LPAREN parametros RPAREN composto_stmt
     ;
 
 parametros:
@@ -62,7 +92,7 @@ lista_parametros:
     ;
 
 param:
-    ID
+    tipo ID
     ;
 
 stmt:
@@ -79,12 +109,7 @@ expr_stmt:
     ;
 
 composto_stmt:
-    LBRACE declaracoes_stmt RBRACE
-    ;
-
-declaracoes_stmt:
-    declaracoes_stmt stmt
-    | /* vazio */
+    LBRACE lista_declaracoes RBRACE
     ;
 
 if_stmt:
@@ -97,8 +122,8 @@ while_stmt:
     ;
 
 return_stmt:
-    RETURN SEMICOLON
-    | RETURN expr SEMICOLON
+    RETURN expr SEMICOLON
+    | RETURN SEMICOLON
     ;
 
 expr:
@@ -132,6 +157,8 @@ fator:
     | var
     | chamada
     | NUM
+    | FLOAT
+    | CHAR_LITERAL
     | STRING
     ;
 

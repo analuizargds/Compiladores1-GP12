@@ -1,12 +1,26 @@
 %{
 #include <string.h>
+#include <stdlib.h> 
 #include "exemplo.tab.h"
+extern FILE *yyin;
 %}
 
 /* Definições de padrões de token e ações */
 %%
 
 [ \t\n]+              { /* Não faz nada, apenas ignora */ }
+
+[+\-]?[0-9]{1,10}     {
+                        printf("Reconhecido: NUM (%s)\n", yytext);
+                        yylval.intValue = atoi(yytext);
+                        return NUM;
+                      }
+
+"int"     { printf("Reconhecido: INT\n"); return INT; }
+"float"   { printf("Reconhecido: FLOAT\n"); return FLOAT; }
+"char"    { printf("Reconhecido: CHAR\n"); return CHAR; }
+"void"    { printf("Reconhecido: VOID\n"); return VOID; }
+"double"  { printf("Reconhecido: DOUBLE\n"); return DOUBLE; }
 
 [+\-]?[0-9]{1,10}     {
                         printf("Reconhecido: NUM (%s)\n", yytext);
