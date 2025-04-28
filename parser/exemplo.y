@@ -16,8 +16,11 @@ extern FILE *yyin;
 %token COLON SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
 %token COMMA
+%token DOT
 %token INT FLOAT CHAR VOID DOUBLE
 %token CHAR_LITERAL
+%token STRUCT UNION ENUM TYPEDEF
+%token HEX CARACT
 
 /* Declaração de precedência e associatividade */
 %right ASSIGN
@@ -54,6 +57,14 @@ declaracao:
     declaracao_variavel SEMICOLON
     | fun_declaracao
     | stmt
+    | declaracao_tipo
+    ;
+
+declaracao_tipo:
+    struct_declaracao
+    | union_declaracao
+    | enum_declaracao
+    | typedef_declaracao
     ;
 
 switch_stmt:
@@ -89,6 +100,9 @@ tipo:
     | CHAR
     | VOID
     | DOUBLE
+    | STRUCT ID
+    | UNION ID
+    | ENUM ID
     ;
 
 lista_variaveis:
@@ -158,6 +172,7 @@ expr:
 
 var:
     ID
+    | var DOT ID
     ;
 
 relacao_expr:
@@ -187,6 +202,7 @@ fator:
     | chamada
     | NUM
     | FLOAT
+    | HEX
     | CHAR_LITERAL
     | STRING
     ;
@@ -203,6 +219,27 @@ argumentos:
 lista_args:
     lista_args COMMA expr
     | expr
+    ;
+
+struct_declaracao:
+    STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON
+    ;
+
+union_declaracao:
+    UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON
+    ;
+
+enum_declaracao:
+    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON
+    ;
+
+typedef_declaracao:
+    TYPEDEF tipo ID SEMICOLON
+    ;
+
+lista_identificadores:
+    ID
+    | lista_identificadores COMMA ID
     ;
 
 %%
