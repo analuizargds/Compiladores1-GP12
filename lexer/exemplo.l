@@ -42,6 +42,13 @@ extern FILE *yyin;
                         return FLOAT;
                       }
 
+\'[a-zA-Z0-9]\'   {
+    printf("Reconhecido: CHAR_LITERAL (%s)\n", yytext);
+    yylval.charValue = yytext[1]; // O caractere está entre aspas simples
+    return CHAR_LITERAL;
+}
+
+
 [a-zA-Z_][a-zA-Z0-9_]* { 
                          printf("Reconhecido: ID (%s)\n", yytext);
                          yylval.strValue = strdup(yytext);
