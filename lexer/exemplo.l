@@ -64,6 +64,7 @@ extern FILE *yyin;
 "="     { printf("Reconhecido: ASSIGN\n"); return ASSIGN; }
 ">="     { printf("Reconhecido: GE\n"); return GE; }
 "<="     { printf("Reconhecido: LE\n"); return LE; }
+"!="     { printf("Reconhecido: NE\n"); return NE; }
 ">"     { printf("Reconhecido: GT\n"); return GT; }
 "<"     { printf("Reconhecido: LT\n"); return LT; }
 "+"     { printf("Reconhecido: PLUS\n"); return PLUS; }
@@ -79,6 +80,17 @@ extern FILE *yyin;
 "%"     { printf("Reconhecido: MOD\n"); return MOD; }
 ","     { printf("Reconhecido: COMMA\n"); return COMMA; }
 "."     { printf("Reconhecido: DOT\n"); return DOT; }
+
+"&&"    { printf("Reconhecido: AND\n"); return AND; }
+"||"    { printf("Reconhecido: OR\n"); return OR; }
+"!"     { printf("Reconhecido: NOT\n"); return NOT; }
+
+"&"     { printf("Reconhecido: BITAND\n"); return BITAND; }
+"|"     { printf("Reconhecido: BITOR\n"); return BITOR; }
+"^"     { printf("Reconhecido: BITXOR\n"); return BITXOR; }
+"~"     { printf("Reconhecido: BITNOT\n"); return BITNOT; }
+"<<"    { printf("Reconhecido: SHIFTLEFT\n"); return SHIFTLEFT; }
+">>"    { printf("Reconhecido: SHIFTRIGHT\n"); return SHIFTRIGHT; }
 
 ":"     { printf("Reconhecido: COLON\n"); return COLON; }
 ";"     { printf("Reconhecido: SEMICOLON\n"); return SEMICOLON; }
