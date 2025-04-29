@@ -9,9 +9,9 @@ extern FILE *yyin;
 %}
 
 %token NUM
-%token IF ELSE SWITCH CASE DEFAULT BREAK WHILE RETURN
+%token IF ELSE SWITCH CASE DEFAULT BREAK WHILE RETURN DO FOR CONTINUE
 %token ID
-%token EQ ASSIGN PLUS MINUS MULT DIV
+%token EQ ASSIGN PLUS MINUS MULT DIV MOD
 %token GE LE GT LT
 %token COLON SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
@@ -21,6 +21,8 @@ extern FILE *yyin;
 %token CHAR_LITERAL
 %token STRUCT UNION ENUM TYPEDEF
 %token HEX CARACT
+%token INCREMENT DECREMENT
+%token PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
 
 /* Declaração de precedência e associatividade */
 %right ASSIGN
@@ -70,6 +72,30 @@ declaracao_tipo:
 switch_stmt:
     SWITCH LPAREN expr RPAREN LBRACE case_list RBRACE
     ;
+
+for_init:
+    expr
+    | declaracao_variavel
+    | /* vazio */
+    ;
+
+for_parer:
+    expr
+    | /* vazio */
+    ;
+
+for_stmt:
+    FOR LPAREN for_init SEMICOLON for_parer SEMICOLON for_parer RPAREN stmt
+    ;
+
+do_stmt:
+    DO stmt WHILE LPAREN expr RPAREN SEMICOLON
+    ;
+
+continue_stmt:
+    CONTINUE SEMICOLON
+    ;
+
 
 case_list:
     case_list case_stmt
@@ -140,6 +166,9 @@ stmt:
     | while_stmt
     | return_stmt
     | switch_stmt
+    | do_stmt
+    | for_stmt
+    | continue_stmt
     ;
 
 expr_stmt:
@@ -167,12 +196,18 @@ return_stmt:
 
 expr:
     var ASSIGN expr
+    | var PLUS_ASSIGN expr
+    | var MINUS_ASSIGN expr
+    | var MULT_ASSIGN expr
+    | var DIV_ASSIGN expr
     | relacao_expr
     ;
 
 var:
     ID
     | var DOT ID
+    | var INCREMENT
+    | var DECREMENT
     ;
 
 relacao_expr:
@@ -193,6 +228,7 @@ add_expr:
 mult_expr:
     mult_expr MULT fator
     | mult_expr DIV fator
+    | mult_expr MOD fator
     | fator
     ;
 
