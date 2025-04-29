@@ -197,8 +197,8 @@ expr:
     | expr MULT expr
     | expr DIV expr
     | expr RESTO expr
-    | INCREMENTO var
-    | DECREMENTO var
+    | var INCREMENTO
+    | var DECREMENTO
     | NOT expr
     | BITNOT expr
     | LPAREN expr RPAREN
