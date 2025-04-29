@@ -5,14 +5,13 @@
 int yylex(void);
 void yyerror(const char *s);
 extern FILE *yyin;
-
 %}
 
 %token NUM
 %token IF ELSE SWITCH CASE DEFAULT BREAK WHILE RETURN DO FOR CONTINUE
 %token ID
-%token EQ ASSIGN PLUS MINUS MULT DIV MOD
-%token GE LE GT LT
+%token GE LE GT LT NE EQ
+%token ASSIGN PLUS MINUS MULT DIV MOD
 %token COLON SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
 %token COMMA
@@ -23,15 +22,25 @@ extern FILE *yyin;
 %token HEX CARACT
 %token INCREMENT DECREMENT
 %token PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
+%token AND OR NOT
+%token BITAND BITOR BITXOR BITNOT SHIFTLEFT SHIFTRIGHT
 
-/* Declaração de precedência e associatividade */
-%right ASSIGN
-%left EQ GE LE GT LT
+%right ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
+%left OR
+%left AND
+%left BITOR
+%left BITXOR
+%left BITAND
+%left EQ NE
+%left GE LE GT LT
+%left SHIFTLEFT SHIFTRIGHT
 %left PLUS MINUS
-%left MULT DIV
+%left MULT DIV MOD
+%right UMINUS UPLUS
+%right NOT BITNOT
+%right INCREMENT DECREMENT
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
-%nonassoc IFX
 
 %union {
     int intValue;
@@ -46,6 +55,7 @@ extern FILE *yyin;
 %type <charValue> CHAR_LITERAL
 
 %%
+
 programa:
     lista_declaracoes
     ;
@@ -139,6 +149,7 @@ lista_variaveis:
 variavel:
     ID
     | ID ASSIGN expr
+    | ID ASSIGN inicializador
     ;
 
 fun_declaracao:
@@ -159,6 +170,16 @@ param:
     tipo ID
     ;
 
+inicializador:
+    LBRACE lista_inicializadores RBRACE
+    ;
+
+lista_inicializadores:
+    expr
+    | lista_inicializadores COMMA expr
+    | /* vazio */
+    ;
+
 stmt:
     expr_stmt
     | composto_stmt
@@ -175,9 +196,10 @@ expr_stmt:
     expr SEMICOLON
     | SEMICOLON
     ;
-
+    
 composto_stmt:
     LBRACE lista_declaracoes RBRACE
+    | LBRACE RBRACE
     ;
 
 if_stmt:
@@ -195,52 +217,102 @@ return_stmt:
     ;
 
 expr:
-    var ASSIGN expr
-    | var PLUS_ASSIGN expr
-    | var MINUS_ASSIGN expr
-    | var MULT_ASSIGN expr
-    | var DIV_ASSIGN expr
-    | relacao_expr
+    atrib_expr
     ;
 
-var:
-    ID
-    | var DOT ID
-    | var INCREMENT
-    | var DECREMENT
+atrib_expr:
+    or_expr
+    | var ASSIGN atrib_expr
+    | var PLUS_ASSIGN atrib_expr
+    | var MINUS_ASSIGN atrib_expr
+    | var MULT_ASSIGN atrib_expr
+    | var DIV_ASSIGN atrib_expr
+    ;
+
+or_expr:
+    and_expr
+    | or_expr OR and_expr
+    ;
+
+and_expr:
+    bitor_expr
+    | and_expr AND bitor_expr
+    ;
+
+bitor_expr:
+    bitxor_expr
+    | bitor_expr BITOR bitxor_expr
+    ;
+
+bitxor_expr:
+    bitand_expr
+    | bitxor_expr BITXOR bitand_expr
+    ;
+
+bitand_expr:
+    equal_expr
+    | bitand_expr BITAND equal_expr
+    ;
+
+equal_expr:
+    relacao_expr
+    | equal_expr EQ relacao_expr
+    | equal_expr NE relacao_expr
     ;
 
 relacao_expr:
+    shift_expr
+    | relacao_expr GT shift_expr
+    | relacao_expr LT shift_expr
+    | relacao_expr GE shift_expr
+    | relacao_expr LE shift_expr
+    ;
+
+shift_expr:
     add_expr
-    | add_expr EQ add_expr
-    | add_expr GE add_expr
-    | add_expr LE add_expr
-    | add_expr GT add_expr
-    | add_expr LT add_expr
+    | shift_expr SHIFTLEFT add_expr
+    | shift_expr SHIFTRIGHT add_expr
     ;
 
 add_expr:
-    add_expr PLUS mult_expr
+    mult_expr
+    | add_expr PLUS mult_expr
     | add_expr MINUS mult_expr
-    | mult_expr
     ;
 
 mult_expr:
-    mult_expr MULT fator
-    | mult_expr DIV fator
-    | mult_expr MOD fator
-    | fator
+    unary_expr
+    | mult_expr MULT unary_expr
+    | mult_expr DIV unary_expr
+    | mult_expr MOD unary_expr
+    ;
+
+unary_expr:
+    fator
+    | INCREMENT var
+    | DECREMENT var
+    | NOT unary_expr
+    | BITNOT unary_expr
+    | MINUS unary_expr %prec UMINUS
+    | PLUS unary_expr %prec UPLUS
     ;
 
 fator:
     LPAREN expr RPAREN
     | var
     | chamada
+    | var INCREMENT
+    | var DECREMENT
     | NUM
     | FLOAT
     | HEX
     | CHAR_LITERAL
     | STRING
+    ;
+
+var:
+    ID
+    | var DOT ID
     ;
 
 chamada:
@@ -277,6 +349,7 @@ lista_identificadores:
     ID
     | lista_identificadores COMMA ID
     ;
+
 
 %%
 
