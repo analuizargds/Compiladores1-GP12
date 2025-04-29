@@ -191,6 +191,7 @@ expr:
     | expr LE expr
     | expr GT expr
     | expr LT expr
+    | expr NE expr
     | expr PLUS expr
     | expr MINUS expr
     | expr MULT expr
