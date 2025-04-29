@@ -59,6 +59,7 @@ extern FILE *yyin;
 "="     { printf("Reconhecido: ASSIGN\n"); return ASSIGN; }
 ">="     { printf("Reconhecido: GE\n"); return GE; }
 "<="     { printf("Reconhecido: LE\n"); return LE; }
+"!="     { printf("Reconhecido: NE\n"); return NE; }
 ">"     { printf("Reconhecido: GT\n"); return GT; }
 "<"     { printf("Reconhecido: LT\n"); return LT; }
 "+"     { printf("Reconhecido: PLUS\n"); return PLUS; }

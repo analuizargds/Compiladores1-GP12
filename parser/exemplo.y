@@ -11,7 +11,7 @@ extern FILE *yyin;
 %token IF ELSE SWITCH CASE DEFAULT BREAK WHILE RETURN
 %token ID
 %token EQ ASSIGN PLUS MINUS MULT DIV
-%token GE LE GT LT
+%token GE LE GT LT NE
 %token COLON SEMICOLON LBRACE RBRACE LPAREN RPAREN
 %token STRING
 %token COMMA
@@ -221,6 +221,7 @@ relacao_expr:
     | add_expr LE add_expr
     | add_expr GT add_expr
     | add_expr LT add_expr
+    | add_expr NE add_expr
     ;
 
 add_expr:
