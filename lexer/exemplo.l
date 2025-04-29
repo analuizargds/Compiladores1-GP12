@@ -29,6 +29,11 @@ extern FILE *yyin;
 "break"  { printf("Reconhecido: BREAK\n"); return BREAK; } 
 "while" { printf("Reconhecido: WHILE\n"); return WHILE; }
 "return" { printf("Reconhecido: RETURN\n"); return RETURN; }
+"do" { printf("Reconhecido: DO\n"); return DO; }
+"for" { printf("Reconhecido: FOR\n"); return FOR; }
+"continue" { printf("Reconhecido: CONTINUE\n"); return CONTINUE; }
+
+
 
 [+\-]?[0-9]{1,10}     {
                         printf("Reconhecido: NUM (%s)\n", yytext);
@@ -64,8 +69,15 @@ extern FILE *yyin;
 "<"     { printf("Reconhecido: LT\n"); return LT; }
 "+"     { printf("Reconhecido: PLUS\n"); return PLUS; }
 "-"     { printf("Reconhecido: MINUS\n"); return MINUS; }
+"++"    { printf("Reconhecido: INCREMENT\n"); return INCREMENT; }
+"--"    { printf("Reconhecido: DECREMENT\n"); return DECREMENT; }
+"\+="   { printf("Reconhecido: PLUS_ASSIGN\n"); return PLUS_ASSIGN; }
+"-="    { printf("Reconhecido: MINUS_ASSIGN\n"); return MINUS_ASSIGN; }
+"\*="   { printf("Reconhecido: MULT_ASSIGN\n"); return MULT_ASSIGN; }
+"/="    { printf("Reconhecido: DIV_ASSIGN\n"); return DIV_ASSIGN; }
 "*"     { printf("Reconhecido: MULT\n"); return MULT; }
 "/"     { printf("Reconhecido: DIV\n"); return DIV; }
+"%"     { printf("Reconhecido: MOD\n"); return MOD; }
 ","     { printf("Reconhecido: COMMA\n"); return COMMA; }
 "."     { printf("Reconhecido: DOT\n"); return DOT; }
 
@@ -79,11 +91,6 @@ extern FILE *yyin;
 "~"     { printf("Reconhecido: BITNOT\n"); return BITNOT; }
 "<<"    { printf("Reconhecido: SHIFTLEFT\n"); return SHIFTLEFT; }
 ">>"    { printf("Reconhecido: SHIFTRIGHT\n"); return SHIFTRIGHT; }
-
-"%"     { printf("Reconhecido: RESTO\n"); return RESTO; }
-
-"++"    { printf("Reconhecido: INCREMENTO\n"); return INCREMENTO; }
-"--"    { printf("Reconhecido: DECREMENTO\n"); return DECREMENTO; }
 
 ":"     { printf("Reconhecido: COLON\n"); return COLON; }
 ";"     { printf("Reconhecido: SEMICOLON\n"); return SEMICOLON; }
