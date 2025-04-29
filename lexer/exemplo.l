@@ -68,8 +68,15 @@ extern FILE *yyin;
 "<"     { printf("Reconhecido: LT\n"); return LT; }
 "+"     { printf("Reconhecido: PLUS\n"); return PLUS; }
 "-"     { printf("Reconhecido: MINUS\n"); return MINUS; }
+"++"    { printf("Reconhecido: INCREMENT\n"); return INCREMENT; }
+"--"    { printf("Reconhecido: DECREMENT\n"); return DECREMENT; }
+"\+="   { printf("Reconhecido: PLUS_ASSIGN\n"); return PLUS_ASSIGN; }
+"-="    { printf("Reconhecido: MINUS_ASSIGN\n"); return MINUS_ASSIGN; }
+"\*="   { printf("Reconhecido: MULT_ASSIGN\n"); return MULT_ASSIGN; }
+"/="    { printf("Reconhecido: DIV_ASSIGN\n"); return DIV_ASSIGN; }
 "*"     { printf("Reconhecido: MULT\n"); return MULT; }
 "/"     { printf("Reconhecido: DIV\n"); return DIV; }
+"%"     { printf("Reconhecido: MOD\n"); return MOD; }
 ","     { printf("Reconhecido: COMMA\n"); return COMMA; }
 "."     { printf("Reconhecido: DOT\n"); return DOT; }
 
