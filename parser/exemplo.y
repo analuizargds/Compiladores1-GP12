@@ -5,7 +5,6 @@
 int yylex(void);
 void yyerror(const char *s);
 extern FILE *yyin;
-
 %}
 
 %token NUM
@@ -22,11 +21,23 @@ extern FILE *yyin;
 %token STRUCT UNION ENUM TYPEDEF
 %token HEX CARACT
 
-/* Declaração de precedência e associatividade */
+%token AND OR NOT
+%token BITAND BITOR BITXOR BITNOT SHIFTLEFT SHIFTRIGHT
+%token RESTO
+%token INCREMENTO DECREMENTO
+
 %right ASSIGN
+%left OR
+%left AND
+%left BITOR
+%left BITXOR
+%left BITAND
 %left EQ GE LE GT LT
+%left SHIFTLEFT SHIFTRIGHT
 %left PLUS MINUS
-%left MULT DIV
+%left MULT DIV RESTO
+%right NOT BITNOT
+%right INCREMENTO DECREMENTO
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 %nonassoc IFX
@@ -44,6 +55,7 @@ extern FILE *yyin;
 %type <charValue> CHAR_LITERAL
 
 %%
+
 programa:
     lista_declaracoes
     ;
@@ -167,7 +179,34 @@ return_stmt:
 
 expr:
     var ASSIGN expr
-    | relacao_expr
+    | expr OR expr
+    | expr AND expr
+    | expr BITOR expr
+    | expr BITXOR expr
+    | expr BITAND expr
+    | expr SHIFTLEFT expr
+    | expr SHIFTRIGHT expr
+    | expr EQ expr
+    | expr GE expr
+    | expr LE expr
+    | expr GT expr
+    | expr LT expr
+    | expr PLUS expr
+    | expr MINUS expr
+    | expr MULT expr
+    | expr DIV expr
+    | expr RESTO expr
+    | INCREMENTO var
+    | DECREMENTO var
+    | NOT expr
+    | BITNOT expr
+    | LPAREN expr RPAREN
+    | var
+    | NUM
+    | FLOAT
+    | HEX
+    | CHAR_LITERAL
+    | STRING
     ;
 
 var:
@@ -193,6 +232,7 @@ add_expr:
 mult_expr:
     mult_expr MULT fator
     | mult_expr DIV fator
+    | mult_expr RESTO fator
     | fator
     ;
 
@@ -200,6 +240,10 @@ fator:
     LPAREN expr RPAREN
     | var
     | chamada
+    | INCREMENTO var
+    | DECREMENTO var
+    | NOT fator
+    | BITNOT fator
     | NUM
     | FLOAT
     | HEX
