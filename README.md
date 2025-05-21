@@ -15,6 +15,7 @@ Construir um compilador que traduzirá o código de c para DOT utilizando as fer
 - **parser/:** Contém os arquivos relacionados à análise sintática, incluindo a gramática definida em exemplo.y.
 - **lexer/:** Contém os arquivos relacionados à análise léxica, incluindo os padrões de tokens definidos em exemplo.l.
 - **src/:** Diretório reservado para o código principal do projeto.
+- **ast/:** Contém os arquivos relacionados a AST (Árvore Sintática Abstrata), representando as categorias sintáticas relevantes da linguagem.
 - **entrada.c:** Exemplo de entrada em C para ser processado pelo compilador.
 - **teste.c:** Outro exemplo de entrada em C.
 
