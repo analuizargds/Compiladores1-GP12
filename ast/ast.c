@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "ast.h"
+
+
 ASTNode *noSwitch(ASTNode *expr, ASTNode *cases) {
     ASTNode *no = criarNo(AST_SWITCH, NULL);
     no->filho1 = expr;
