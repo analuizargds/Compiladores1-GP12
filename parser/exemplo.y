@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "simbolos.h"
 
 int yylex(void);
 void yyerror(const char *s);
@@ -53,12 +54,15 @@ extern FILE *yyin;
 %type <floatValue> FLOAT
 %type <strValue> ID STRING
 %type <charValue> CHAR_LITERAL
+%type <intValue> tipo
 
 %%
 
 programa:
-    lista_declaracoes
-    ;
+       { iniciarTabelaSimbolos(); }
+       lista_declaracoes
+       { imprimirTabelaSimbolos(); finalizarTabelaSimbolos(); }
+;
 
 lista_declaracoes:
     lista_declaracoes declaracao
@@ -127,19 +131,23 @@ comandos_opt:
     ;
 
 declaracao_variavel:
-    tipo lista_variaveis
-    ;
+    tipo
+    {
+        tipoDeclaracaoAtual = $1;
+    }
+    lista_variaveis
+;
 
 tipo:
-    INT
-    | FLOAT
-    | CHAR
-    | VOID
-    | DOUBLE
-    | STRUCT ID
-    | UNION ID
-    | ENUM ID
-    ;
+    INT         { $$ = TIPO_INT; }
+  | FLOAT       { $$ = TIPO_FLOAT; }
+  | CHAR        { $$ = TIPO_ERRO; }
+  | VOID        { $$ = TIPO_ERRO; }
+  | DOUBLE      { $$ = TIPO_ERRO; }
+  | STRUCT ID   { $$ = TIPO_ERRO; }
+  | UNION ID    { $$ = TIPO_ERRO; }
+  | ENUM ID     { $$ = TIPO_ERRO; }
+;
 
 lista_variaveis:
     variavel
@@ -148,13 +156,48 @@ lista_variaveis:
 
 variavel:
     ID
-    | ID ASSIGN expr
-    | ID ASSIGN inicializador
-    ;
+    {
+        if (buscarSimboloNoEscopoAtual($1) != NULL) {
+            yyerror("Erro: Redeclaração de variável no mesmo escopo");
+        } else {
+            inserirSimbolo($1, tipoDeclaracaoAtual);
+        }
+    }
+    |
+    ID ASSIGN expr
+    {
+        if (buscarSimboloNoEscopoAtual($1) != NULL) {
+            yyerror("Erro: Redeclaração de variável no mesmo escopo");
+        } else {
+            inserirSimbolo($1, tipoDeclaracaoAtual);
+        }
+    }
+    |
+    ID ASSIGN inicializador
+    {
+        if (buscarSimboloNoEscopoAtual($1) != NULL) {
+            yyerror("Erro: Redeclaração de variável no mesmo escopo");
+        } else {
+            inserirSimbolo($1, tipoDeclaracaoAtual);
+        }
+    }
+;
 
 fun_declaracao:
-    tipo ID LPAREN parametros RPAREN composto_stmt
-    ;
+    tipo ID LPAREN parametros RPAREN
+    {
+        if (buscarSimboloNoEscopoAtual($2) != NULL) {
+            yyerror("Erro: Função já declarada");
+        } else {
+            inserirSimbolo($2, $1); // $1 = tipo de retorno
+        }
+        iniciarEscopo();
+    }
+    composto_stmt
+    {
+        finalizarEscopo();
+    }
+;
 
 parametros:
     lista_parametros
@@ -168,7 +211,14 @@ lista_parametros:
 
 param:
     tipo ID
-    ;
+    {
+        if (buscarSimboloNoEscopoAtual($2) != NULL) {
+            yyerror("Erro: Parâmetro já declarado");
+        } else {
+            inserirSimbolo($2, $1); // $1 = tipo do parâmetro
+        }
+    }
+;
 
 inicializador:
     LBRACE lista_inicializadores RBRACE
@@ -312,8 +362,14 @@ fator:
 
 var:
     ID
-    | var DOT ID
-    ;
+    {
+        if (buscarSimbolo($1) == NULL) {
+            yyerror("Erro: Variável usada sem declaração");
+        }
+    }
+    |
+    var DOT ID
+;
 
 chamada:
     ID LPAREN argumentos RPAREN
