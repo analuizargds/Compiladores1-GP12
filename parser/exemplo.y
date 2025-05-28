@@ -1,12 +1,11 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "ast.h"
+#include "../semantic/semantic.h"
 
 int yylex(void);
 void yyerror(const char *s);
 extern FILE *yyin;
-ASTNode* root;
 %}
 
 %token NUM
@@ -49,23 +48,12 @@ ASTNode* root;
     float floatValue;
     char* strValue;
     char charValue;
-    struct ASTNode* node;
 }
 
 %type <intValue> NUM
 %type <floatValue> FLOAT
 %type <strValue> ID STRING
 %type <charValue> CHAR_LITERAL
-
-%type <node> programa lista_declaracoes declaracao
-%type <node> stmt expr atrib_expr or_expr and_expr bitor_expr bitxor_expr
-%type <node> bitand_expr equal_expr relacao_expr shift_expr add_expr mult_expr
-%type <node> unary_expr fator var chamada argumentos lista_args
-%type <node> declaracao_variavel lista_variaveis variavel
-%type <node> fun_declaracao parametros lista_parametros param
-%type <node> composto_stmt if_stmt while_stmt return_stmt for_stmt do_stmt
-%type <node> continue_stmt switch_stmt
-%type <node> case_list case_stmt comandos_break comandos_opt
 
 %%
 
@@ -363,93 +351,4 @@ lista_identificadores:
     | lista_identificadores COMMA ID
     ;
 
-programa:
-    lista_declaracoes { root = $1; }
 ;
-
-lista_declaracoes:
-    lista_declaracoes declaracao { $$ = concatenarStmt($1, $2); }
-    | declaracao { $$ = $1; }
-;
-
-declaracao_variavel:
-    tipo lista_variaveis { $$ = criarNoVarDecl($2->valor_str, criarNoType($1->valor_str)); }
-;
-
-variavel:
-    ID { $$ = criarNoVar($1); }
-    | ID ASSIGN expr { $$ = criarNoAssign('=', criarNoVar($1), $3); }
-;
-
-add_expr:
-    add_expr PLUS mult_expr { $$ = criarNoBinOp('+', $1, $3); }
-    | add_expr MINUS mult_expr { $$ = criarNoBinOp('-', $1, $3); }
-    | mult_expr MULT unary_expr { $$ = criarNoBinOp('*', $1, $3); }
-    | mult_expr DIV unary_expr { $$ = criarNoBinOp('/', $1, $3); }
-    | mult_expr MOD unary_expr { $$ = criarNoBinOp('%', $1, $3); }
-;
-
-unary_expr:
-    MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
-    | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp('+', $2); }
-    | NOT unary_expr { $$ = criarNoUnaryOp('!', $2); }
-    | BITNOT unary_expr { $$ = criarNoUnaryOp('~', $2); }
-    | fator { $$ = $1; }
-;
-
-if_stmt:
-    IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE { $$ = criarNoIf($3, $5, NULL); }
-    | IF LPAREN expr RPAREN stmt ELSE stmt { $$ = criarNoIf($3, $5, $7); }
-;
-
-while_stmt:
-    WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
-;
-
-for_stmt:
-    FOR LPAREN expr SEMICOLON expr SEMICOLON expr RPAREN stmt {
-        $$ = criarNoFor($3, $5, $7, $9);
-    }
-;
-
-return_stmt:
-    RETURN expr SEMICOLON { $$ = criarNoReturn($2); }
-    | RETURN SEMICOLON { $$ = criarNoReturn(NULL); }
-;
-
-composto_stmt:
-    LBRACE lista_declaracoes RBRACE { $$ = criarNoBlock($2); }
-    | LBRACE RBRACE { $$ = criarNoBlock(NULL); }
-;
-
-fator:
-    NUM { $$ = criarNoInt($1); }
-    | FLOAT { $$ = criarNoFloat($1); }
-    | CHAR_LITERAL { $$ = criarNoChar($1); }
-    | HEX { $$ = criarNoHex($1); }
-    | STRING { $$ = criarNoString($1); }
-    | var { $$ = $1; }
-    | chamada { $$ = $1; }
-    | LPAREN expr RPAREN { $$ = $2; }
-;
-
-chamada:
-    ID LPAREN argumentos RPAREN { $$ = criarNoCall($1, $3); }
-;
-
-argumentos:
-    lista_args { $$ = $1; }
-    | /* vazio */ { $$ = NULL; }
-;
-
-lista_args:
-    lista_args COMMA expr { $$ = concatenarArg($1, $3); }
-    | expr { $$ = $1; }
-;
-
-
-%%
-
-void yyerror(const char *s) {
-    fprintf(stderr, "Erro sintático: %s\n", s);
-}
