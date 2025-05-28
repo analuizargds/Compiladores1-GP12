@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../ast/ast.h" // Incluindo ast.h explicitamente
 
 // Definição dos tipos suportados
 typedef enum {
@@ -36,16 +37,16 @@ typedef struct {
 
 // Funções para análise semântica
 // Verificação de tipos em expressões aritméticas
-TypeInfo check_arithmetic_expr(ASTNode *node);
+TypeInfo check_arithmetic_expr(ASTNode *node, int line);
 
 // Verificação de tipos em expressões lógicas
-TypeInfo check_logical_expr(ASTNode *node);
+TypeInfo check_logical_expr(ASTNode *node, int line);
 
 // Verificação de tipos em atribuições
-TypeInfo check_assignment(ASTNode *node);
+TypeInfo check_assignment(ASTNode *node, int line);
 
 // Verificação de tipos em comparações
-TypeInfo check_comparison(ASTNode *node);
+TypeInfo check_comparison(ASTNode *node, int line);
 
 // Função para verificar compatibilidade de tipos
 int are_types_compatible(TypeInfo type1, TypeInfo type2);
@@ -67,5 +68,23 @@ const char *get_type_name(TypeInfo type);
 
 // Função para converter enum DataType para string
 const char *data_type_to_string(DataType type);
+
+// Função para verificar tipos em statements
+void check_statement(ASTNode *node);
+
+// Função para verificar tipos em declarações de variáveis
+TypeInfo check_var_declaration(ASTNode *node);
+
+// Função para verificar tipos em expressões de controle
+void check_control_expr(ASTNode *node);
+
+// Função para inicializar o sistema de análise semântica
+void init_semantic_analysis();
+
+// Função para liberar recursos da análise semântica
+void cleanup_semantic_analysis();
+
+// Função para obter a linha do nó AST
+int get_node_line(ASTNode *node);
 
 #endif // SEMANTIC_H
