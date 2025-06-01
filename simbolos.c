@@ -127,6 +127,7 @@ Simbolo *inserirSimbolo(char *nome, TipoSimbolo tipo)
     s->nome[TAM_NOME - 1] = '\0';
     s->tipo = tipo;
     s->nivel = escopoAtual->nivel;
+    s->ast_node = NULL;
     s->proximo = escopoAtual->tabela[i];
     escopoAtual->tabela[i] = s;
 
