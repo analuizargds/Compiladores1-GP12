@@ -1,12 +1,14 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "ast.h"
+#include "simbolos.h"
+#include "../ast/ast.h"
 
 int yylex(void);
 void yyerror(const char *s);
 extern FILE *yyin;
 ASTNode* root;
+int tipoDeclaracaoAtual;
 %}
 
 %token NUM
@@ -56,6 +58,7 @@ ASTNode* root;
 %type <floatValue> FLOAT
 %type <strValue> ID STRING
 %type <charValue> CHAR_LITERAL
+%type <intValue> tipo
 
 %type <node> programa lista_declaracoes declaracao
 %type <node> stmt expr atrib_expr or_expr and_expr bitor_expr bitxor_expr
@@ -70,13 +73,19 @@ ASTNode* root;
 %%
 
 programa:
-    lista_declaracoes
-    ;
+    { iniciarTabelaSimbolos(); }
+    lista_declaracoes 
+    { 
+        root = $1;
+        imprimirTabelaSimbolos(); 
+        finalizarTabelaSimbolos(); 
+    }
+;
 
 lista_declaracoes:
-    lista_declaracoes declaracao
-    | declaracao
-    ;
+    lista_declaracoes declaracao { $$ = concatenarStmt($1, $2); }
+    | declaracao { $$ = $1; }
+;
 
 declaracao:
     declaracao_variavel SEMICOLON
@@ -108,8 +117,11 @@ for_parer:
     ;
 
 for_stmt:
-    FOR LPAREN for_init SEMICOLON for_parer SEMICOLON for_parer RPAREN stmt
-    ;
+    FOR LPAREN for_init SEMICOLON for_parer SEMICOLON for_parer RPAREN stmt 
+    { 
+        $$ = criarNoFor($3, $5, $7, $9); 
+    }
+;
 
 do_stmt:
     DO stmt WHILE LPAREN expr RPAREN SEMICOLON
@@ -140,19 +152,26 @@ comandos_opt:
     ;
 
 declaracao_variavel:
-    tipo lista_variaveis
-    ;
+    tipo 
+    {
+        $$ = criarNoType($1);
+    }
+    lista_variaveis 
+    { 
+        $$ = criarNoVarDecl($3->valor_str); 
+    }
+;
 
 tipo:
-    INT
-    | FLOAT
-    | CHAR
-    | VOID
-    | DOUBLE
-    | STRUCT ID
-    | UNION ID
-    | ENUM ID
-    ;
+    INT         { $$ = TIPO_INT; }
+  | FLOAT       { $$ = TIPO_FLOAT; }
+  | CHAR        { $$ = TIPO_ERRO; }
+  | VOID        { $$ = TIPO_ERRO; }
+  | DOUBLE      { $$ = TIPO_ERRO; }
+  | STRUCT ID   { $$ = TIPO_ERRO; }
+  | UNION ID    { $$ = TIPO_ERRO; }
+  | ENUM ID     { $$ = TIPO_ERRO; }
+;
 
 lista_variaveis:
     variavel
@@ -160,14 +179,52 @@ lista_variaveis:
     ;
 
 variavel:
-    ID
-    | ID ASSIGN expr
-    | ID ASSIGN inicializador
-    ;
+    ID 
+    {
+        if (buscarSimboloNoEscopoAtual($1) != NULL) {
+            yyerror("Erro: Redeclaração de variável no mesmo escopo");
+        } else {
+            inserirSimbolo($1, tipoDeclaracaoAtual);
+        }
+        $$ = criarNoVar($1);
+    }
+    |
+    ID ASSIGN expr 
+    {
+        if (buscarSimboloNoEscopoAtual($1) != NULL) {
+            yyerror("Erro: Redeclaração de variável no mesmo escopo");
+        } else {
+            inserirSimbolo($1, tipoDeclaracaoAtual);
+        }
+        $$ = criarNoAssign('=', criarNoVar($1), $3);
+    }
+    |
+    ID ASSIGN inicializador 
+    {
+        if (buscarSimboloNoEscopoAtual($1) != NULL) {
+            yyerror("Erro: Redeclaração de variável no mesmo escopo");
+        } else {
+            inserirSimbolo($1, tipoDeclaracaoAtual);
+        }
+        $$ = criarNoAssign('=', criarNoVar($1), $3);
+    }
+;
 
 fun_declaracao:
-    tipo ID LPAREN parametros RPAREN composto_stmt
-    ;
+    tipo ID LPAREN parametros RPAREN
+    {
+        if (buscarSimboloNoEscopoAtual($2) != NULL) {
+            yyerror("Erro: Função já declarada");
+        } else {
+            inserirSimbolo($2, $1); // $1 = tipo de retorno
+        }
+        iniciarEscopo();
+    }
+    composto_stmt
+    {
+        finalizarEscopo();
+    }
+;
 
 parametros:
     lista_parametros
@@ -181,7 +238,14 @@ lista_parametros:
 
 param:
     tipo ID
-    ;
+    {
+        if (buscarSimboloNoEscopoAtual($2) != NULL) {
+            yyerror("Erro: Parâmetro já declarado");
+        } else {
+            inserirSimbolo($2, $1); // $1 = tipo do parâmetro
+        }
+    }
+;
 
 inicializador:
     LBRACE lista_inicializadores RBRACE
@@ -211,23 +275,23 @@ expr_stmt:
     ;
     
 composto_stmt:
-    LBRACE lista_declaracoes RBRACE
-    | LBRACE RBRACE
-    ;
+    LBRACE lista_declaracoes RBRACE { $$ = criarNoBlock($2); }
+    | LBRACE RBRACE { $$ = criarNoBlock(NULL); }
+;
 
 if_stmt:
-    IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE
-    | IF LPAREN expr RPAREN stmt ELSE stmt
-    ;
+    IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE { $$ = criarNoIf($3, $5, NULL); }
+    | IF LPAREN expr RPAREN stmt ELSE stmt { $$ = criarNoIf($3, $5, $7); }
+;
 
 while_stmt:
-    WHILE LPAREN expr RPAREN stmt
-    ;
+    WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
+;
 
 return_stmt:
-    RETURN expr SEMICOLON
-    | RETURN SEMICOLON
-    ;
+    RETURN expr SEMICOLON { $$ = criarNoReturn($2); }
+    | RETURN SEMICOLON { $$ = criarNoReturn(NULL); }
+;
 
 expr:
     atrib_expr
@@ -288,59 +352,63 @@ shift_expr:
     ;
 
 add_expr:
-    mult_expr
-    | add_expr PLUS mult_expr
-    | add_expr MINUS mult_expr
-    ;
+    mult_expr { $$ = $1; }
+    | add_expr PLUS mult_expr { $$ = criarNoBinOp('+', $1, $3); }
+    | add_expr MINUS mult_expr { $$ = criarNoBinOp('-', $1, $3); }
+;
 
 mult_expr:
-    unary_expr
-    | mult_expr MULT unary_expr
-    | mult_expr DIV unary_expr
-    | mult_expr MOD unary_expr
-    ;
+    unary_expr { $$ = $1; }
+    | mult_expr MULT unary_expr { $$ = criarNoBinOp('*', $1, $3); }
+    | mult_expr DIV unary_expr { $$ = criarNoBinOp('/', $1, $3); }
+    | mult_expr MOD unary_expr { $$ = criarNoBinOp('%', $1, $3); }
+;
 
 unary_expr:
-    fator
-    | INCREMENT var
-    | DECREMENT var
-    | NOT unary_expr
-    | BITNOT unary_expr
-    | MINUS unary_expr %prec UMINUS
-    | PLUS unary_expr %prec UPLUS
-    ;
+    fator { $$ = $1; }
+    | NOT unary_expr { $$ = criarNoUnaryOp('!', $2); }
+    | BITNOT unary_expr { $$ = criarNoUnaryOp('~', $2); }
+    | MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
+    | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp('+', $2); }
+;
 
 fator:
-    LPAREN expr RPAREN
-    | var
-    | chamada
+    LPAREN expr RPAREN { $$ = $2; }
+    | var { $$ = $1; }
+    | chamada { $$ = $1; }
     | var INCREMENT
     | var DECREMENT
-    | NUM
-    | FLOAT
-    | HEX
-    | CHAR_LITERAL
-    | STRING
-    ;
+    | NUM { $$ = criarNoInt($1); }
+    | FLOAT { $$ = criarNoFloat($1); }
+    | HEX { $$ = criarNoHex($1); }
+    | CHAR_LITERAL { $$ = criarNoChar($1); }
+    | STRING { $$ = criarNoString($1); }
+;
 
 var:
     ID
-    | var DOT ID
-    ;
+    {
+        if (buscarSimbolo($1) == NULL) {
+            yyerror("Erro: Variável usada sem declaração");
+        }
+    }
+    |
+    var DOT ID
+;
 
 chamada:
-    ID LPAREN argumentos RPAREN
-    ;
+    ID LPAREN argumentos RPAREN { $$ = criarNoCall($1, $3); }
+;
 
 argumentos:
-    lista_args
-    | /* vazio */
-    ;
+    lista_args { $$ = $1; }
+    | /* vazio */ { $$ = NULL; }
+;
 
 lista_args:
-    lista_args COMMA expr
-    | expr
-    ;
+    lista_args COMMA expr { $$ = concatenarArg($1, $3); }
+    | expr { $$ = $1; }
+;
 
 struct_declaracao:
     STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON
@@ -362,91 +430,6 @@ lista_identificadores:
     ID
     | lista_identificadores COMMA ID
     ;
-
-programa:
-    lista_declaracoes { root = $1; }
-;
-
-lista_declaracoes:
-    lista_declaracoes declaracao { $$ = concatenarStmt($1, $2); }
-    | declaracao { $$ = $1; }
-;
-
-declaracao_variavel:
-    tipo lista_variaveis { $$ = criarNoVarDecl($2->valor_str, criarNoType($1->valor_str)); }
-;
-
-variavel:
-    ID { $$ = criarNoVar($1); }
-    | ID ASSIGN expr { $$ = criarNoAssign('=', criarNoVar($1), $3); }
-;
-
-add_expr:
-    add_expr PLUS mult_expr { $$ = criarNoBinOp('+', $1, $3); }
-    | add_expr MINUS mult_expr { $$ = criarNoBinOp('-', $1, $3); }
-    | mult_expr MULT unary_expr { $$ = criarNoBinOp('*', $1, $3); }
-    | mult_expr DIV unary_expr { $$ = criarNoBinOp('/', $1, $3); }
-    | mult_expr MOD unary_expr { $$ = criarNoBinOp('%', $1, $3); }
-;
-
-unary_expr:
-    MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
-    | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp('+', $2); }
-    | NOT unary_expr { $$ = criarNoUnaryOp('!', $2); }
-    | BITNOT unary_expr { $$ = criarNoUnaryOp('~', $2); }
-    | fator { $$ = $1; }
-;
-
-if_stmt:
-    IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE { $$ = criarNoIf($3, $5, NULL); }
-    | IF LPAREN expr RPAREN stmt ELSE stmt { $$ = criarNoIf($3, $5, $7); }
-;
-
-while_stmt:
-    WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
-;
-
-for_stmt:
-    FOR LPAREN expr SEMICOLON expr SEMICOLON expr RPAREN stmt {
-        $$ = criarNoFor($3, $5, $7, $9);
-    }
-;
-
-return_stmt:
-    RETURN expr SEMICOLON { $$ = criarNoReturn($2); }
-    | RETURN SEMICOLON { $$ = criarNoReturn(NULL); }
-;
-
-composto_stmt:
-    LBRACE lista_declaracoes RBRACE { $$ = criarNoBlock($2); }
-    | LBRACE RBRACE { $$ = criarNoBlock(NULL); }
-;
-
-fator:
-    NUM { $$ = criarNoInt($1); }
-    | FLOAT { $$ = criarNoFloat($1); }
-    | CHAR_LITERAL { $$ = criarNoChar($1); }
-    | HEX { $$ = criarNoHex($1); }
-    | STRING { $$ = criarNoString($1); }
-    | var { $$ = $1; }
-    | chamada { $$ = $1; }
-    | LPAREN expr RPAREN { $$ = $2; }
-;
-
-chamada:
-    ID LPAREN argumentos RPAREN { $$ = criarNoCall($1, $3); }
-;
-
-argumentos:
-    lista_args { $$ = $1; }
-    | /* vazio */ { $$ = NULL; }
-;
-
-lista_args:
-    lista_args COMMA expr { $$ = concatenarArg($1, $3); }
-    | expr { $$ = $1; }
-;
-
 
 %%
 
