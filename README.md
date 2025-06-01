@@ -56,6 +56,15 @@ gcc -o exemplo -I./parser ./parser/exemplo.tab.c ./lexer/lex.yy.c -lfl
 ./exemplo <arquivo de entrada>
 ```
 
+#### Como Executar Testes
+
+```
+cd tests
+gcc -Wall -Wextra -g -I.. teste_interativo.c ../simbolos.c -o teste_interativo
+```
+
+substituir teste_interativo.c pelo arquivo desejado
+
 ## Colaboradores - Grupo 12
 
 <div  class="HomeProfiles" style="justify-content: center; display: flex; flex-direction: column">
