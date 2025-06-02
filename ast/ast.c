@@ -57,19 +57,19 @@ ASTNode *criarNoType(const char *tipo)
     return criarNo(AST_TYPE, tipo);
 }
 
-ASTNode *criarNoBinOp(char op, ASTNode *esq, ASTNode *dir)
+ASTNode *criarNoBinOp(const char *op, ASTNode *esq, ASTNode *dir)
 {
     ASTNode *no = criarNo(AST_BINARY_OP, NULL);
-    no->valor_char = op;
+    no->valor_str = strdup(op);
     no->filho1 = esq;
     no->filho2 = dir;
     return no;
 }
 
-ASTNode *criarNoUnaryOp(char op, ASTNode *expr)
+ASTNode *criarNoUnaryOp(char *op, ASTNode *expr)
 {
     ASTNode *no = criarNo(AST_UNARY_OP, NULL);
-    no->valor_char = op;
+    no->valor_str = strdup(op);
     no->filho1 = expr;
     return no;
 }

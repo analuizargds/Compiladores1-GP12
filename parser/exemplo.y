@@ -242,79 +242,98 @@ expr:
 atrib_expr:
     or_expr { $$ = $1; }
     | var ASSIGN atrib_expr { $$ = criarNoAssign('=', $1, $3); }
-    | var PLUS_ASSIGN atrib_expr { $$ = criarNoBinOp('+', $1, $3); }
-    | var MINUS_ASSIGN atrib_expr { $$ = criarNoBinOp('-', $1, $3); }
-    | var MULT_ASSIGN atrib_expr { $$ = criarNoBinOp('*', $1, $3); }
-    | var DIV_ASSIGN atrib_expr { $$ = criarNoBinOp('/', $1, $3); }
+    | var PLUS_ASSIGN atrib_expr { 
+        $$ = criarNoAssign('=', 
+            $1, 
+            criarNoBinOp("+", $1, $3)
+        ); 
+    }
+    | var MINUS_ASSIGN atrib_expr { 
+        $$ = criarNoAssign('=', 
+            $1, 
+            criarNoBinOp("-", $1, $3)
+        ); 
+    }
+    | var MULT_ASSIGN atrib_expr { 
+        $$ = criarNoAssign('=', 
+            $1, 
+            criarNoBinOp("*", $1, $3)
+        ); 
+    }
+    | var DIV_ASSIGN atrib_expr { 
+        $$ = criarNoAssign('=', 
+            $1, 
+            criarNoBinOp("/", $1, $3)
+        ); 
+    }
     ;
 
 or_expr:
     and_expr { $$ = $1; }
-    | or_expr OR and_expr { $$ = criarNoBinOp('|', $1, $3);}
+    | or_expr OR and_expr { $$ = criarNoBinOp("||", $1, $3);}
     ;
 
 and_expr:
     bitor_expr { $$ = $1; }
-    | and_expr AND bitor_expr { $$ = criarNoBinOp('&', $1, $3); }
+    | and_expr AND bitor_expr { $$ = criarNoBinOp("&&", $1, $3); }
     ;
 
 bitor_expr:
     bitxor_expr { $$ = $1; }
-    | bitor_expr BITOR bitxor_expr { $$ = criarNoBinOp('|', $1, $3);}
+    | bitor_expr BITOR bitxor_expr { $$ = criarNoBinOp("|", $1, $3);}
     ;
 
 bitxor_expr:
     bitand_expr { $$ = $1; }
-    | bitxor_expr BITXOR bitand_expr { $$ = criarNoBinOp('^', $1, $3); }
+    | bitxor_expr BITXOR bitand_expr { $$ = criarNoBinOp("^", $1, $3); }
     ;
 
 bitand_expr:
     equal_expr { $$ = $1; }
-    | bitand_expr BITAND equal_expr { $$ = criarNoBinOp('&', $1, $3); }
+    | bitand_expr BITAND equal_expr { $$ = criarNoBinOp("&", $1, $3); }
     ;
 
 equal_expr:
     relacao_expr { $$ = $1; }
-    | equal_expr EQ relacao_expr { $$ = criarNoBinOp('=', $1, $3);}
-    | equal_expr NE relacao_expr { $$ = criarNoBinOp('!', $1, $3);}
+    | equal_expr EQ relacao_expr { $$ = criarNoBinOp("==", $1, $3);}
+    | equal_expr NE relacao_expr { $$ = criarNoBinOp("!=", $1, $3);}
     ;
 
 relacao_expr:
     shift_expr { $$ = $1; }
-    | relacao_expr GT shift_expr { $$ = criarNoBinOp('>', $1, $3); }
-    | relacao_expr LT shift_expr { $$ = criarNoBinOp('<', $1, $3); }
-    | relacao_expr GE shift_expr { $$ = criarNoBinOp('g', $1, $3); }
-    | relacao_expr LE shift_expr { $$ = criarNoBinOp('l', $1, $3); }
+    | relacao_expr GT shift_expr { $$ = criarNoBinOp(">", $1, $3); }
+    | relacao_expr LT shift_expr { $$ = criarNoBinOp("<", $1, $3); }
+    | relacao_expr GE shift_expr { $$ = criarNoBinOp(">=", $1, $3); }
+    | relacao_expr LE shift_expr { $$ = criarNoBinOp("<=", $1, $3); }
     ;
-
 
 shift_expr:
     add_expr { $$ = $1; }
-    | shift_expr SHIFTLEFT add_expr { $$ = criarNoBinOp('[', $1, $3); }
-    | shift_expr SHIFTRIGHT add_expr { $$ = criarNoBinOp(']', $1, $3); }
+    | shift_expr SHIFTLEFT add_expr { $$ = criarNoBinOp("<<", $1, $3); }
+    | shift_expr SHIFTRIGHT add_expr { $$ = criarNoBinOp(">>", $1, $3); }
     ;
 
 add_expr:
        mult_expr { $$ = $1; }
-       | add_expr PLUS mult_expr { $$ = criarNoBinOp('+', $1, $3); }
-       | add_expr MINUS mult_expr { $$ = criarNoBinOp('-', $1, $3); }
+       | add_expr PLUS mult_expr { $$ = criarNoBinOp("+", $1, $3); }
+       | add_expr MINUS mult_expr { $$ = criarNoBinOp("-", $1, $3); }
        ;
 
 mult_expr:
     unary_expr { $$ = $1; }
-    | mult_expr MULT unary_expr { $$ = criarNoBinOp('*', $1, $3); }
-    | mult_expr DIV unary_expr { $$ = criarNoBinOp('/', $1, $3); }
-    | mult_expr MOD unary_expr { $$ = criarNoBinOp('%', $1, $3); }
+    | mult_expr MULT unary_expr { $$ = criarNoBinOp("*", $1, $3); }
+    | mult_expr DIV unary_expr { $$ = criarNoBinOp("/", $1, $3); }
+    | mult_expr MOD unary_expr { $$ = criarNoBinOp("%", $1, $3); }
     ;
 
 unary_expr:
     fator { $$ = $1; }
-    | INCREMENT var { $$ = criarNoUnaryOp('+', $2); }
-    | DECREMENT var { $$ = criarNoUnaryOp('-', $2); }
-    | MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
-    | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp('+', $2); }
-    | NOT unary_expr { $$ = criarNoUnaryOp('!', $2); }
-    | BITNOT unary_expr { $$ = criarNoUnaryOp('~', $2); }
+    | INCREMENT var { $$ = criarNoUnaryOp("++", $2); }
+    | DECREMENT var { $$ = criarNoUnaryOp("--", $2); }
+    | MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp("-", $2); }
+    | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp("+", $2); }
+    | NOT unary_expr { $$ = criarNoUnaryOp("!", $2); }
+    | BITNOT unary_expr { $$ = criarNoUnaryOp("~", $2); }
 ;
 
 fator:
@@ -326,8 +345,8 @@ fator:
     | var { $$ = $1; }
     | chamada { $$ = $1; }
     | LPAREN expr RPAREN { $$ = $2; }
-    | var INCREMENT { $$ = criarNoUnaryOp('+', $1); }
-    | var DECREMENT { $$ = criarNoUnaryOp('-', $1); }
+    | var INCREMENT { $$ = criarNoUnaryOp("++", $1); }
+    | var DECREMENT { $$ = criarNoUnaryOp("--", $1); }
 ;
 
 var:
