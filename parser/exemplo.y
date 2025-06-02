@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "ast.h"
+#include "../ast/ast.h"
 
 int yylex(void);
 void yyerror(const char *s);
@@ -56,6 +56,7 @@ ASTNode* root;
 %type <floatValue> FLOAT
 %type <strValue> ID STRING
 %type <charValue> CHAR_LITERAL
+%type <strValue> HEX
 
 %type <node> programa lista_declaracoes declaracao
 %type <node> stmt expr atrib_expr or_expr and_expr bitor_expr bitxor_expr
@@ -66,302 +67,10 @@ ASTNode* root;
 %type <node> composto_stmt if_stmt while_stmt return_stmt for_stmt do_stmt
 %type <node> continue_stmt switch_stmt
 %type <node> case_list case_stmt comandos_break comandos_opt
+%type <node> declaracao_tipo struct_declaracao union_declaracao enum_declaracao typedef_declaracao
+%type <node> tipo expr_stmt lista_identificadores
 
 %%
-
-programa:
-    lista_declaracoes
-    ;
-
-lista_declaracoes:
-    lista_declaracoes declaracao
-    | declaracao
-    ;
-
-declaracao:
-    declaracao_variavel SEMICOLON
-    | fun_declaracao
-    | stmt
-    | declaracao_tipo
-    ;
-
-declaracao_tipo:
-    struct_declaracao
-    | union_declaracao
-    | enum_declaracao
-    | typedef_declaracao
-    ;
-
-switch_stmt:
-    SWITCH LPAREN expr RPAREN LBRACE case_list RBRACE
-    ;
-
-for_init:
-    expr
-    | declaracao_variavel
-    | /* vazio */
-    ;
-
-for_parer:
-    expr
-    | /* vazio */
-    ;
-
-for_stmt:
-    FOR LPAREN for_init SEMICOLON for_parer SEMICOLON for_parer RPAREN stmt
-    ;
-
-do_stmt:
-    DO stmt WHILE LPAREN expr RPAREN SEMICOLON
-    ;
-
-continue_stmt:
-    CONTINUE SEMICOLON
-    ;
-
-
-case_list:
-    case_list case_stmt
-    | case_stmt
-    ;
-
-case_stmt:
-    CASE expr COLON comandos_break
-    | DEFAULT COLON comandos_break
-    ;
-
-comandos_break:
-    comandos_opt BREAK SEMICOLON
-    ;
-
-comandos_opt:
-    /* vazio */
-    | lista_declaracoes
-    ;
-
-declaracao_variavel:
-    tipo lista_variaveis
-    ;
-
-tipo:
-    INT
-    | FLOAT
-    | CHAR
-    | VOID
-    | DOUBLE
-    | STRUCT ID
-    | UNION ID
-    | ENUM ID
-    ;
-
-lista_variaveis:
-    variavel
-    | lista_variaveis COMMA variavel
-    ;
-
-variavel:
-    ID
-    | ID ASSIGN expr
-    | ID ASSIGN inicializador
-    ;
-
-fun_declaracao:
-    tipo ID LPAREN parametros RPAREN composto_stmt
-    ;
-
-parametros:
-    lista_parametros
-    | /* vazio */
-    ;
-
-lista_parametros:
-    lista_parametros COMMA param
-    | param
-    ;
-
-param:
-    tipo ID
-    ;
-
-inicializador:
-    LBRACE lista_inicializadores RBRACE
-    ;
-
-lista_inicializadores:
-    expr
-    | lista_inicializadores COMMA expr
-    | /* vazio */
-    ;
-
-stmt:
-    expr_stmt
-    | composto_stmt
-    | if_stmt
-    | while_stmt
-    | return_stmt
-    | switch_stmt
-    | do_stmt
-    | for_stmt
-    | continue_stmt
-    ;
-
-expr_stmt:
-    expr SEMICOLON
-    | SEMICOLON
-    ;
-    
-composto_stmt:
-    LBRACE lista_declaracoes RBRACE
-    | LBRACE RBRACE
-    ;
-
-if_stmt:
-    IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE
-    | IF LPAREN expr RPAREN stmt ELSE stmt
-    ;
-
-while_stmt:
-    WHILE LPAREN expr RPAREN stmt
-    ;
-
-return_stmt:
-    RETURN expr SEMICOLON
-    | RETURN SEMICOLON
-    ;
-
-expr:
-    atrib_expr
-    ;
-
-atrib_expr:
-    or_expr
-    | var ASSIGN atrib_expr
-    | var PLUS_ASSIGN atrib_expr
-    | var MINUS_ASSIGN atrib_expr
-    | var MULT_ASSIGN atrib_expr
-    | var DIV_ASSIGN atrib_expr
-    ;
-
-or_expr:
-    and_expr
-    | or_expr OR and_expr
-    ;
-
-and_expr:
-    bitor_expr
-    | and_expr AND bitor_expr
-    ;
-
-bitor_expr:
-    bitxor_expr
-    | bitor_expr BITOR bitxor_expr
-    ;
-
-bitxor_expr:
-    bitand_expr
-    | bitxor_expr BITXOR bitand_expr
-    ;
-
-bitand_expr:
-    equal_expr
-    | bitand_expr BITAND equal_expr
-    ;
-
-equal_expr:
-    relacao_expr
-    | equal_expr EQ relacao_expr
-    | equal_expr NE relacao_expr
-    ;
-
-relacao_expr:
-    shift_expr
-    | relacao_expr GT shift_expr
-    | relacao_expr LT shift_expr
-    | relacao_expr GE shift_expr
-    | relacao_expr LE shift_expr
-    ;
-
-shift_expr:
-    add_expr
-    | shift_expr SHIFTLEFT add_expr
-    | shift_expr SHIFTRIGHT add_expr
-    ;
-
-add_expr:
-    mult_expr
-    | add_expr PLUS mult_expr
-    | add_expr MINUS mult_expr
-    ;
-
-mult_expr:
-    unary_expr
-    | mult_expr MULT unary_expr
-    | mult_expr DIV unary_expr
-    | mult_expr MOD unary_expr
-    ;
-
-unary_expr:
-    fator
-    | INCREMENT var
-    | DECREMENT var
-    | NOT unary_expr
-    | BITNOT unary_expr
-    | MINUS unary_expr %prec UMINUS
-    | PLUS unary_expr %prec UPLUS
-    ;
-
-fator:
-    LPAREN expr RPAREN
-    | var
-    | chamada
-    | var INCREMENT
-    | var DECREMENT
-    | NUM
-    | FLOAT
-    | HEX
-    | CHAR_LITERAL
-    | STRING
-    ;
-
-var:
-    ID
-    | var DOT ID
-    ;
-
-chamada:
-    ID LPAREN argumentos RPAREN
-    ;
-
-argumentos:
-    lista_args
-    | /* vazio */
-    ;
-
-lista_args:
-    lista_args COMMA expr
-    | expr
-    ;
-
-struct_declaracao:
-    STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON
-    ;
-
-union_declaracao:
-    UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON
-    ;
-
-enum_declaracao:
-    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON
-    ;
-
-typedef_declaracao:
-    TYPEDEF tipo ID SEMICOLON
-    ;
-
-lista_identificadores:
-    ID
-    | lista_identificadores COMMA ID
-    ;
 
 programa:
     lista_declaracoes { root = $1; }
@@ -372,29 +81,122 @@ lista_declaracoes:
     | declaracao { $$ = $1; }
 ;
 
+declaracao:
+    declaracao_variavel SEMICOLON { $$ = $1; }
+    | fun_declaracao { $$ = $1; }
+    | stmt { $$ = $1; }
+    | declaracao_tipo { $$ = $1; }
+    ;
+
+declaracao_tipo:
+    struct_declaracao { $$ = $1; }
+    | union_declaracao { $$ = $1; }
+    | enum_declaracao { $$ = $1; }
+    | typedef_declaracao { $$ = $1; }
+    ;
+
+switch_stmt:
+    SWITCH LPAREN expr RPAREN LBRACE case_list RBRACE { $$ = criarNoSwitch($3, $6); }
+    ;
+
+for_stmt:
+    FOR LPAREN expr SEMICOLON expr SEMICOLON expr RPAREN stmt {
+        $$ = criarNoFor($3, $5, $7, $9);
+    }
+;
+
+do_stmt:
+    DO stmt WHILE LPAREN expr RPAREN SEMICOLON { $$ = criarNoDoWhile($5, $2); }
+    ;
+
+continue_stmt:
+    CONTINUE SEMICOLON { $$ = criarNoContinue(); }
+    ;
+
+
+case_list:
+    case_list case_stmt { $$ = concatenarStmt($1, $2); }
+    | case_stmt { $$ = $1; }
+    ;
+
+case_stmt:
+       CASE expr COLON comandos_break { $$ = $4; }
+       | DEFAULT COLON comandos_break { $$ = $3; }
+       ;
+
+
+comandos_break:
+    comandos_opt BREAK SEMICOLON { $$ = concatenarStmt($1, criarNoBreak()); }
+    ;
+
+comandos_opt:
+    /* vazio */ { $$ = NULL; }
+    | lista_declaracoes { $$ = $1; }
+    ;
+
 declaracao_variavel:
     tipo lista_variaveis { $$ = criarNoVarDecl($2->valor_str, criarNoType($1->valor_str)); }
 ;
+
+tipo:
+    INT { $$ = criarNoType("int"); }
+    | FLOAT { $$ = criarNoType("float"); }
+    | CHAR { $$ = criarNoType("char"); }
+    | VOID { $$ = criarNoType("void"); }
+    | DOUBLE { $$ = criarNoType("double"); }
+    | STRUCT ID { $$ = criarNoType($2); }
+    | UNION ID { $$ = criarNoType($2); }
+    | ENUM ID { $$ = criarNoType($2); }
+    ;
+
+lista_variaveis:
+    variavel { $$ = $1; }
+    | lista_variaveis COMMA variavel { $$ = concatenarStmt($1, $3); }
+    ;
 
 variavel:
     ID { $$ = criarNoVar($1); }
     | ID ASSIGN expr { $$ = criarNoAssign('=', criarNoVar($1), $3); }
 ;
 
-add_expr:
-    add_expr PLUS mult_expr { $$ = criarNoBinOp('+', $1, $3); }
-    | add_expr MINUS mult_expr { $$ = criarNoBinOp('-', $1, $3); }
-    | mult_expr MULT unary_expr { $$ = criarNoBinOp('*', $1, $3); }
-    | mult_expr DIV unary_expr { $$ = criarNoBinOp('/', $1, $3); }
-    | mult_expr MOD unary_expr { $$ = criarNoBinOp('%', $1, $3); }
-;
+fun_declaracao:
+    tipo ID LPAREN parametros RPAREN composto_stmt { $$ = criarNoFuncDecl($2, $1, $4, $6); }
+    ;
 
-unary_expr:
-    MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
-    | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp('+', $2); }
-    | NOT unary_expr { $$ = criarNoUnaryOp('!', $2); }
-    | BITNOT unary_expr { $$ = criarNoUnaryOp('~', $2); }
-    | fator { $$ = $1; }
+parametros:
+    lista_parametros { $$ = $1; }
+    | /* vazio */ { $$ = NULL; }
+    ;
+
+lista_parametros:
+    lista_parametros COMMA param { $$ = concatenarParam($1, $3); }
+    | param { $$ = $1; }
+    ;
+
+param:
+    tipo ID { $$ = criarNoParam($2, $1); }
+    ;
+
+stmt:
+    expr_stmt { $$ = $1; }
+    | composto_stmt { $$ = $1; }
+    | if_stmt { $$ = $1; }
+    | while_stmt { $$ = $1; }
+    | return_stmt { $$ = $1; }
+    | switch_stmt { $$ = $1; }
+    | do_stmt { $$ = $1; }
+    | for_stmt { $$ = $1; }
+    | continue_stmt { $$ = $1; }
+    ;
+
+expr_stmt:
+    expr SEMICOLON { $$ = $1; }
+    | SEMICOLON { $$ = NULL; }
+    ;
+    
+composto_stmt:
+    LBRACE lista_declaracoes RBRACE { $$ = criarNoBlock($2); }
+    | LBRACE RBRACE { $$ = criarNoBlock(NULL); }
 ;
 
 if_stmt:
@@ -406,20 +208,88 @@ while_stmt:
     WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
 ;
 
-for_stmt:
-    FOR LPAREN expr SEMICOLON expr SEMICOLON expr RPAREN stmt {
-        $$ = criarNoFor($3, $5, $7, $9);
-    }
-;
-
 return_stmt:
     RETURN expr SEMICOLON { $$ = criarNoReturn($2); }
     | RETURN SEMICOLON { $$ = criarNoReturn(NULL); }
 ;
 
-composto_stmt:
-    LBRACE lista_declaracoes RBRACE { $$ = criarNoBlock($2); }
-    | LBRACE RBRACE { $$ = criarNoBlock(NULL); }
+expr:
+    atrib_expr { $$ = $1; }
+    ;
+
+atrib_expr:
+    or_expr { $$ = $1; }
+    | var ASSIGN atrib_expr { $$ = criarNoAssign('=', $1, $3); }
+    | var PLUS_ASSIGN atrib_expr { $$ = criarNoAssign('+', $1, $3); }
+    | var MINUS_ASSIGN atrib_expr { $$ = criarNoAssign('-', $1, $3); }
+    | var MULT_ASSIGN atrib_expr { $$ = criarNoAssign('*', $1, $3); }
+    | var DIV_ASSIGN atrib_expr { $$ = criarNoAssign('/', $1, $3); }
+    ;
+
+or_expr:
+    and_expr { $$ = $1; }
+    | or_expr OR and_expr { $$ = criarNoBinOp('|', $1, $3); }
+    ;
+
+and_expr:
+    bitor_expr { $$ = $1; }
+    | and_expr AND bitor_expr { $$ = criarNoBinOp('&', $1, $3); }
+    ;
+
+bitor_expr:
+    bitxor_expr { $$ = $1; }
+    | bitor_expr BITOR bitxor_expr { $$ = criarNoBinOp('!', $1, $3); }
+    ;
+
+bitxor_expr:
+    bitand_expr { $$ = $1; }
+    | bitxor_expr BITXOR bitand_expr { $$ = criarNoBinOp('^', $1, $3); }
+    ;
+
+bitand_expr:
+    equal_expr { $$ = $1; }
+    | bitand_expr BITAND equal_expr { $$ = criarNoBinOp('#', $1, $3); }
+    ;
+
+equal_expr:
+    relacao_expr { $$ = $1; }
+    | equal_expr EQ relacao_expr { $$ = criarNoBinOp('=', $1, $3); }
+    | equal_expr NE relacao_expr { $$ = criarNoBinOp('n', $1, $3); }
+    ;
+
+relacao_expr:
+    shift_expr { $$ = $1; }
+    | relacao_expr GT shift_expr { $$ = criarNoBinOp('>', $1, $3); }
+    | relacao_expr LT shift_expr { $$ = criarNoBinOp('<', $1, $3); }
+    | relacao_expr GE shift_expr { $$ = criarNoBinOp('g', $1, $3); }
+    | relacao_expr LE shift_expr { $$ = criarNoBinOp('l', $1, $3); }
+    ;
+
+shift_expr:
+    add_expr { $$ = $1; }
+    | shift_expr SHIFTLEFT add_expr { $$ = criarNoBinOp('[', $1, $3); }
+    | shift_expr SHIFTRIGHT add_expr { $$ = criarNoBinOp(']', $1, $3); }
+    ;
+
+add_expr:
+       mult_expr { $$ = $1; }
+       | add_expr PLUS mult_expr { $$ = criarNoBinOp('+', $1, $3); }
+       | add_expr MINUS mult_expr { $$ = criarNoBinOp('-', $1, $3); }
+       ;
+
+mult_expr:
+    unary_expr
+    | mult_expr MULT unary_expr { $$ = criarNoBinOp('*', $1, $3); }
+    | mult_expr DIV unary_expr { $$ = criarNoBinOp('/', $1, $3); }
+    | mult_expr MOD unary_expr { $$ = criarNoBinOp('%', $1, $3); }
+    ;
+
+unary_expr:
+    MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
+    | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp('+', $2); }
+    | NOT unary_expr { $$ = criarNoUnaryOp('!', $2); }
+    | BITNOT unary_expr { $$ = criarNoUnaryOp('~', $2); }
+    | fator { $$ = $1; }
 ;
 
 fator:
@@ -432,6 +302,11 @@ fator:
     | chamada { $$ = $1; }
     | LPAREN expr RPAREN { $$ = $2; }
 ;
+
+var:
+       ID { $$ = criarNoVar($1); }
+       | var DOT ID { $$ = criarNoVar($3); }
+       ;
 
 chamada:
     ID LPAREN argumentos RPAREN { $$ = criarNoCall($1, $3); }
@@ -447,6 +322,26 @@ lista_args:
     | expr { $$ = $1; }
 ;
 
+struct_declaracao:
+    STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoVar($2); }
+       ;
+
+union_declaracao:
+    UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoVar($2); }
+       ;
+
+enum_declaracao:
+    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON { $$ = criarNoVar($2); }
+       ;
+
+typedef_declaracao:
+    TYPEDEF tipo ID SEMICOLON { $$ = criarNoVar($3); }
+       ;
+
+lista_identificadores:
+    ID { $$ = criarNoVar($1); }
+    | lista_identificadores COMMA ID { $$ = concatenarStmt($1, criarNoVar($3)); }
+    ;
 
 %%
 
