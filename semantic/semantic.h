@@ -73,7 +73,7 @@ const char *data_type_to_string(DataType type);
 void check_statement(ASTNode *node);
 
 // Função para verificar tipos em declarações de variáveis
-TypeInfo check_var_declaration(ASTNode *node);
+void check_var_declaration(ASTNode *node);
 
 // Função para verificar tipos em expressões de controle
 void check_control_expr(ASTNode *node);
