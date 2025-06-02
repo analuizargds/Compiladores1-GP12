@@ -168,15 +168,15 @@ TypeInfo check_arithmetic_expr(ASTNode *node, int line) {
     
     // Verificar o tipo de nó
     switch (node->tipo) {
-        case AST_NUM:
+        case AST_LITERAL_INT:
             result.type = TYPE_INT;
             break;
             
-        case AST_FLOAT:
+        case AST_LITERAL_FLOAT:
             result.type = TYPE_FLOAT;
             break;
             
-        case AST_CHAR:
+        case AST_LITERAL_CHAR:
             result.type = TYPE_CHAR;
             break;
             
@@ -186,7 +186,7 @@ TypeInfo check_arithmetic_expr(ASTNode *node, int line) {
             result.type = TYPE_INT;
             break;
             
-        case AST_BINOP: {
+        case AST_BINARY_OP: {
             // Operações binárias: +, -, *, /, %
             TypeInfo left = check_arithmetic_expr(node->filho1, line);
             TypeInfo right = check_arithmetic_expr(node->filho2, line);
@@ -224,7 +224,7 @@ TypeInfo check_arithmetic_expr(ASTNode *node, int line) {
             }
             
             // Verificar divisão por zero para constantes
-            if (strcmp(node->valor_str, "/") == 0 && node->filho2->tipo == AST_NUM && 
+            if (strcmp(node->valor_str, "/") == 0 && node->filho2->tipo == AST_LITERAL_INT && 
                 node->filho2->valor_int == 0) {
                 semantic_error("Divisão por zero", line);
             }
@@ -232,7 +232,7 @@ TypeInfo check_arithmetic_expr(ASTNode *node, int line) {
             break;
         }
         
-        case AST_PREFIX: {
+        case AST_UNARY_OP: {
             // Operadores unários: +, -, ++, --
             TypeInfo operand = check_arithmetic_expr(node->filho1, line);
             
@@ -259,32 +259,18 @@ TypeInfo check_arithmetic_expr(ASTNode *node, int line) {
             break;
         }
         
-        case AST_POSTFIX: {
-            // Operadores unários pós-fixados: ++, --
-            TypeInfo operand = check_arithmetic_expr(node->filho1, line);
-            
-            if (operand.type == TYPE_ERROR) {
-                result.type = TYPE_ERROR;
-                return result;
-            }
-            
-            if (operand.type == TYPE_VOID) {
-                semantic_error("Operador unário não pode ser aplicado ao tipo void", line);
-                result.type = TYPE_ERROR;
-                return result;
-            }
-            
-            // Operadores ++ e -- só podem ser aplicados a variáveis
-            if (node->filho1->tipo != AST_VAR) {
-                semantic_error("Operadores de incremento/decremento só podem ser aplicados a variáveis", line);
-                result.type = TYPE_ERROR;
-                return result;
-            }
-            
-            result.type = operand.type;
+        // Adicionando casos para outros tipos de nós que podem aparecer em expressões aritméticas
+        case AST_CALL:
+            // Assumindo que chamadas de função retornam int por enquanto
+            // Em uma implementação completa, consultaríamos a tabela de símbolos
+            result.type = TYPE_INT;
             break;
-        }
-        
+            
+        case AST_MEMBER_ACCESS:
+            // Assumindo que acesso a membros retorna int por enquanto
+            result.type = TYPE_INT;
+            break;
+            
         default:
             semantic_error("Expressão aritmética inválida", line);
             result.type = TYPE_ERROR;
@@ -303,7 +289,7 @@ TypeInfo check_logical_expr(ASTNode *node, int line) {
     
     // Verificar o tipo de nó
     switch (node->tipo) {
-        case AST_BINOP: {
+        case AST_BINARY_OP: {
             // Operações lógicas: &&, ||
             if (strcmp(node->valor_str, "&&") == 0 || strcmp(node->valor_str, "||") == 0) {
                 TypeInfo left = check_logical_expr(node->filho1, line);
@@ -357,7 +343,7 @@ TypeInfo check_logical_expr(ASTNode *node, int line) {
             break;
         }
         
-        case AST_PREFIX: {
+        case AST_UNARY_OP: {
             // Operador lógico unário: !
             if (strcmp(node->valor_str, "!") == 0) {
                 TypeInfo operand = check_logical_expr(node->filho1, line);
@@ -434,7 +420,7 @@ TypeInfo check_assignment(ASTNode *node, int line) {
         result = var_type;
     }
     // Verificar atribuições compostas: +=, -=, *=, /=
-    else if (node->tipo == AST_BINOP && 
+    else if (node->tipo == AST_BINARY_OP && 
              (strcmp(node->valor_str, "+=") == 0 || strcmp(node->valor_str, "-=") == 0 ||
               strcmp(node->valor_str, "*=") == 0 || strcmp(node->valor_str, "/=") == 0)) {
         
@@ -446,7 +432,6 @@ TypeInfo check_assignment(ASTNode *node, int line) {
         
         // Obter o tipo da variável (lado esquerdo)
         TypeInfo var_type = {TYPE_INT, NULL, 0, 0}; // Assumindo int por enquanto
-        // Na implementação real, consultaríamos a tabela de símbolos
         
         // Verificar o lado direito (expressão)
         TypeInfo expr_type = check_arithmetic_expr(node->filho2, line);
@@ -455,16 +440,45 @@ TypeInfo check_assignment(ASTNode *node, int line) {
             return result;
         }
         
-        // Para atribuições compostas, primeiro verificamos se a operação aritmética é válida
+        // Verificar compatibilidade de tipos para a operação
         if (var_type.type == TYPE_VOID || expr_type.type == TYPE_VOID) {
             semantic_error("Operação aritmética não pode ser aplicada ao tipo void", line);
             return result;
         }
         
-        // Verificar divisão por zero para constantes em /=
-        if (strcmp(node->valor_str, "/=") == 0 && node->filho2->tipo == AST_NUM && 
-            node->filho2->valor_int == 0) {
-            semantic_error("Divisão por zero", line);
+        // Verificar operação de módulo (%) - apenas para inteiros
+        if (strcmp(node->valor_str, "%=") == 0 && 
+            (var_type.type != TYPE_INT || expr_type.type != TYPE_INT)) {
+            semantic_error("Operador '%%=' só pode ser aplicado a operandos inteiros", line);
+            return result;
+        }
+        
+        // A atribuição composta retorna o tipo da variável
+        result = var_type;
+    }
+    // Verificar atribuições específicas: PLUS_ASSIGN, MINUS_ASSIGN, etc.
+    else if (node->tipo == AST_PLUS_ASSIGN || node->tipo == AST_MINUS_ASSIGN ||
+             node->tipo == AST_MULT_ASSIGN || node->tipo == AST_DIV_ASSIGN) {
+        
+        // Verificar o lado esquerdo (deve ser uma variável)
+        if (node->filho1->tipo != AST_VAR) {
+            semantic_error("Lado esquerdo da atribuição composta deve ser uma variável", line);
+            return result;
+        }
+        
+        // Obter o tipo da variável (lado esquerdo)
+        TypeInfo var_type = {TYPE_INT, NULL, 0, 0}; // Assumindo int por enquanto
+        
+        // Verificar o lado direito (expressão)
+        TypeInfo expr_type = check_arithmetic_expr(node->filho2, line);
+        
+        if (expr_type.type == TYPE_ERROR) {
+            return result;
+        }
+        
+        // Verificar compatibilidade de tipos para a operação
+        if (var_type.type == TYPE_VOID || expr_type.type == TYPE_VOID) {
+            semantic_error("Operação aritmética não pode ser aplicada ao tipo void", line);
             return result;
         }
         
@@ -478,172 +492,90 @@ TypeInfo check_assignment(ASTNode *node, int line) {
     return result;
 }
 
-// Função para verificar tipos em comparações
-TypeInfo check_comparison(ASTNode *node, int line) {
-    TypeInfo result = {TYPE_ERROR, NULL, 0, 0};
-    
-    if (!node) {
-        return result;
+// Função para verificar declarações de variáveis
+void check_var_declaration(ASTNode *node) {
+    if (!node || node->tipo != AST_VAR_DECL) {
+        return;
     }
     
-    // Verificar se é um nó de comparação
-    if (node->tipo == AST_BINOP && 
-        (strcmp(node->valor_str, "==") == 0 || strcmp(node->valor_str, "!=") == 0 ||
-         strcmp(node->valor_str, "<") == 0 || strcmp(node->valor_str, ">") == 0 ||
-         strcmp(node->valor_str, "<=") == 0 || strcmp(node->valor_str, ">=") == 0)) {
+    // Verificar se o tipo é válido
+    ASTNode *type_node = node->filho1;
+    if (!type_node || type_node->tipo != AST_TYPE) {
+        semantic_error("Tipo inválido na declaração de variável", get_node_line(node));
+        return;
+    }
+    
+    // Verificar inicialização, se houver
+    if (node->filho2) {
+        int line = get_node_line(node);
         
-        // Obter os tipos dos operandos
-        TypeInfo left_type = check_arithmetic_expr(node->filho1, line);
-        TypeInfo right_type = check_arithmetic_expr(node->filho2, line);
+        // Obter o tipo da variável
+        TypeInfo var_type = {TYPE_INT, NULL, 0, 0}; // Assumindo int por enquanto
+        // Na implementação real, consultaríamos o tipo real baseado em type_node
         
-        if (left_type.type == TYPE_ERROR || right_type.type == TYPE_ERROR) {
-            return result;
+        // Verificar o tipo da expressão de inicialização
+        TypeInfo init_type = check_arithmetic_expr(node->filho2, line);
+        
+        if (init_type.type == TYPE_ERROR) {
+            return;
         }
         
         // Verificar compatibilidade de tipos
-        if (!are_types_compatible(left_type, right_type)) {
-            semantic_error("Tipos incompatíveis em comparação: %s e %s", 
-                          line, get_type_name(left_type), get_type_name(right_type));
-            return result;
+        int conversion = is_implicit_conversion_allowed(init_type, var_type);
+        if (conversion == 0) {
+            semantic_error("Tipos incompatíveis na inicialização: não é possível converter %s para %s", 
+                          line, get_type_name(init_type), get_type_name(var_type));
+        } else if (conversion == 2) {
+            // Conversão permitida, mas com aviso
+            semantic_warning("Conversão implícita de %s para %s pode causar perda de dados", 
+                            line, get_type_name(init_type), get_type_name(var_type));
         }
-        
-        // Verificar comparações específicas
-        // Operadores < > <= >= só podem ser aplicados a tipos numéricos
-        if ((strcmp(node->valor_str, "<") == 0 || strcmp(node->valor_str, ">") == 0 ||
-             strcmp(node->valor_str, "<=") == 0 || strcmp(node->valor_str, ">=") == 0)) {
-            
-            // Verificar se ambos os tipos são numéricos
-            if ((left_type.type != TYPE_INT && left_type.type != TYPE_FLOAT && 
-                 left_type.type != TYPE_DOUBLE && left_type.type != TYPE_CHAR) ||
-                (right_type.type != TYPE_INT && right_type.type != TYPE_FLOAT && 
-                 right_type.type != TYPE_DOUBLE && right_type.type != TYPE_CHAR)) {
-                
-                semantic_error("Operadores de comparação relacional só podem ser aplicados a tipos numéricos", line);
-                return result;
-            }
-        }
-        
-        // O resultado de uma comparação é sempre int (0 ou 1)
-        result.type = TYPE_INT;
     }
-    else {
-        // Se não for um nó de comparação, delegar para verificação lógica
-        return check_logical_expr(node, line);
-    }
-    
-    return result;
 }
 
-// Função para obter a linha do nó AST
+// Função auxiliar para obter a linha de um nó
 int get_node_line(ASTNode *node) {
-    // Na implementação real, cada nó da AST deveria armazenar a linha
-    return node ? node->linha : 0;
+    if (!node) {
+        return 0;
+    }
+    return node->linha;
 }
 
-// Função para verificar tipos em declarações de variáveis
-TypeInfo check_var_declaration(ASTNode *node) {
-    TypeInfo result = {TYPE_ERROR, NULL, 0, 0};
-    
-    if (!node || node->tipo != AST_VAR_DECL) {
-        return result;
+// Função para verificar declarações de funções
+void check_func_declaration(ASTNode *node) {
+    if (!node || node->tipo != AST_FUNC_DECL) {
+        return;
     }
     
-    int line = get_node_line(node);
-    
-    // Verificar o tipo declarado
+    // Verificar se o tipo de retorno é válido
     ASTNode *type_node = node->filho1;
-    if (!type_node) {
-        semantic_error("Declaração de variável sem tipo", line);
-        return result;
+    if (!type_node || type_node->tipo != AST_TYPE) {
+        semantic_error("Tipo de retorno inválido na declaração de função", get_node_line(node));
+        return;
     }
     
-    // Obter o tipo da declaração
-    TypeInfo decl_type = {TYPE_UNKNOWN, NULL, 0, 0};
-    
-    if (type_node->tipo == AST_TYPE) {
-        if (strcmp(type_node->valor_str, "int") == 0) {
-            decl_type.type = TYPE_INT;
-        } else if (strcmp(type_node->valor_str, "float") == 0) {
-            decl_type.type = TYPE_FLOAT;
-        } else if (strcmp(type_node->valor_str, "char") == 0) {
-            decl_type.type = TYPE_CHAR;
-        } else if (strcmp(type_node->valor_str, "void") == 0) {
-            decl_type.type = TYPE_VOID;
-        } else if (strcmp(type_node->valor_str, "double") == 0) {
-            decl_type.type = TYPE_DOUBLE;
-        } else if (strcmp(type_node->valor_str, "struct") == 0 || 
-                   strcmp(type_node->valor_str, "union") == 0 || 
-                   strcmp(type_node->valor_str, "enum") == 0) {
-            // Tipos personalizados
-            if (strcmp(type_node->valor_str, "struct") == 0) {
-                decl_type.type = TYPE_STRUCT;
-            } else if (strcmp(type_node->valor_str, "union") == 0) {
-                decl_type.type = TYPE_UNION;
-            } else {
-                decl_type.type = TYPE_ENUM;
+    // Verificar parâmetros
+    ASTNode *params = node->filho2;
+    while (params) {
+        if (params->tipo == AST_PARAM) {
+            // Verificar se o tipo do parâmetro é válido
+            ASTNode *param_type = params->filho1;
+            if (!param_type || param_type->tipo != AST_TYPE) {
+                semantic_error("Tipo inválido no parâmetro de função", get_node_line(params));
             }
-            decl_type.custom_type_name = type_node->valor_str2; // Nome do tipo personalizado
         }
+        params = params->prox;
     }
     
-    if (decl_type.type == TYPE_UNKNOWN) {
-        semantic_error("Tipo desconhecido na declaração de variável", line);
-        return result;
+    // Verificar corpo da função
+    ASTNode *body = node->filho3;
+    if (body) {
+        check_statement(body);
     }
-    
-    // Verificar se o tipo é void (não permitido para variáveis)
-    if (decl_type.type == TYPE_VOID) {
-        semantic_error("Variáveis não podem ser do tipo void", line);
-        return result;
-    }
-    
-    // Verificar a lista de variáveis
-    ASTNode *var_list = node->filho2;
-    while (var_list) {
-        if (var_list->tipo == AST_VAR) {
-            // Variável simples sem inicialização
-            // Aqui adicionaríamos à tabela de símbolos
-        } else if (var_list->tipo == AST_ASSIGN) {
-            // Variável com inicialização
-            ASTNode *var_node = var_list->filho1;
-            ASTNode *init_node = var_list->filho2;
-            
-            if (var_node->tipo != AST_VAR) {
-                semantic_error("Lado esquerdo da inicialização deve ser uma variável", get_node_line(var_list));
-                return result;
-            }
-            
-            // Verificar o tipo da expressão de inicialização
-            TypeInfo init_type = check_arithmetic_expr(init_node, get_node_line(var_list));
-            
-            if (init_type.type == TYPE_ERROR) {
-                return result;
-            }
-            
-            // Verificar compatibilidade de tipos
-            int conversion = is_implicit_conversion_allowed(init_type, decl_type);
-            if (conversion == 0) {
-                semantic_error("Tipos incompatíveis na inicialização: não é possível converter %s para %s", 
-                              get_node_line(var_list), get_type_name(init_type), get_type_name(decl_type));
-                return result;
-            } else if (conversion == 2) {
-                // Conversão permitida, mas com aviso
-                semantic_warning("Conversão implícita de %s para %s pode causar perda de dados", 
-                                get_node_line(var_list), get_type_name(init_type), get_type_name(decl_type));
-            }
-            
-            // Aqui adicionaríamos à tabela de símbolos
-        }
-        
-        var_list = var_list->prox;
-    }
-    
-    result = decl_type;
-    return result;
 }
 
-// Função para verificar tipos em expressões de controle (if, while, for)
-void check_control_expr(ASTNode *node) {
+// Função para verificar statements
+void check_statement(ASTNode *node) {
     if (!node) {
         return;
     }
@@ -665,6 +597,21 @@ void check_control_expr(ASTNode *node) {
             if (node->filho3) {
                 check_statement(node->filho3); // else
             }
+            break;
+        }
+        
+        case AST_IF_ELSE: {
+            // Verificar a expressão de condição
+            ASTNode *cond = node->filho1;
+            TypeInfo cond_type = check_logical_expr(cond, line);
+            
+            if (cond_type.type == TYPE_VOID) {
+                semantic_error("Expressão de condição não pode ser do tipo void", line);
+            }
+            
+            // Verificar os blocos then e else
+            check_statement(node->filho2); // then
+            check_statement(node->filho3); // else
             break;
         }
         
@@ -701,9 +648,9 @@ void check_control_expr(ASTNode *node) {
                 }
             }
             
-            // Verificar a expressão de incremento
+            // Verificar o incremento
             if (node->filho3) {
-                check_arithmetic_expr(node->filho3, get_node_line(node->filho3));
+                check_assignment(node->filho3, get_node_line(node->filho3));
             }
             
             // Verificar o corpo do loop
@@ -728,10 +675,10 @@ void check_control_expr(ASTNode *node) {
         case AST_SWITCH: {
             // Verificar a expressão do switch
             ASTNode *expr = node->filho1;
-            TypeInfo expr_type = check_arithmetic_expr(expr, get_node_line(expr));
+            TypeInfo expr_type = check_arithmetic_expr(expr, line);
             
             if (expr_type.type != TYPE_INT && expr_type.type != TYPE_CHAR) {
-                semantic_error("Expressão do switch deve ser do tipo int ou char", get_node_line(expr));
+                semantic_error("Expressão do switch deve ser do tipo int ou char", line);
             }
             
             // Verificar os casos
@@ -740,71 +687,30 @@ void check_control_expr(ASTNode *node) {
                 if (cases->tipo == AST_CASE) {
                     // Verificar a expressão do case
                     ASTNode *case_expr = cases->filho1;
-                    if (case_expr) { // Não é default
-                        TypeInfo case_type = check_arithmetic_expr(case_expr, get_node_line(case_expr));
-                        
-                        if (case_type.type != TYPE_INT && case_type.type != TYPE_CHAR) {
-                            semantic_error("Expressão do case deve ser do tipo int ou char", get_node_line(case_expr));
-                        }
-                        
-                        // Verificar compatibilidade com a expressão do switch
-                        if (!are_types_compatible(expr_type, case_type)) {
-                            semantic_error("Tipo do case incompatível com o tipo do switch", get_node_line(case_expr));
-                        }
+                    TypeInfo case_type = check_arithmetic_expr(case_expr, get_node_line(case_expr));
+                    
+                    if (!are_types_compatible(case_type, expr_type)) {
+                        semantic_error("Tipo incompatível em case: %s não é compatível com %s", 
+                                      get_node_line(case_expr), get_type_name(case_type), get_type_name(expr_type));
                     }
                     
-                    // Verificar os comandos do case
+                    // Verificar os statements do case
                     check_statement(cases->filho2);
+                } else if (cases->tipo == AST_DEFAULT) {
+                    // Verificar os statements do default
+                    check_statement(cases->filho1);
                 }
-                
                 cases = cases->prox;
             }
             break;
         }
-    }
-}
-
-// Função para verificar tipos em statements
-void check_statement(ASTNode *node) {
-    if (!node) {
-        return;
-    }
-    
-    int line = get_node_line(node);
-    
-    switch (node->tipo) {
-        case AST_IF:
-        case AST_WHILE:
-        case AST_FOR:
-        case AST_DO_WHILE:
-        case AST_SWITCH:
-            check_control_expr(node);
-            break;
-            
+        
         case AST_RETURN: {
-            // Verificar o tipo da expressão de retorno
-            // Aqui precisaríamos do tipo da função atual
-            TypeInfo func_type = {TYPE_INT, NULL, 0, 0}; // Assumindo int por enquanto
-            
+            // Verificar a expressão de retorno, se houver
             if (node->filho1) {
-                TypeInfo ret_type = check_arithmetic_expr(node->filho1, line);
-                
-                if (ret_type.type == TYPE_ERROR) {
-                    return;
-                }
-                
-                // Verificar compatibilidade com o tipo de retorno da função
-                int conversion = is_implicit_conversion_allowed(ret_type, func_type);
-                if (conversion == 0) {
-                    semantic_error("Tipo de retorno incompatível: não é possível converter %s para %s", 
-                                  line, get_type_name(ret_type), get_type_name(func_type));
-                } else if (conversion == 2) {
-                    // Conversão permitida, mas com aviso
-                    semantic_warning("Conversão implícita no retorno de %s para %s pode causar perda de dados", 
-                                    line, get_type_name(ret_type), get_type_name(func_type));
-                }
-            } else if (func_type.type != TYPE_VOID) {
-                semantic_error("Função não void deve retornar um valor", line);
+                // Aqui precisaríamos verificar se o tipo de retorno é compatível com o tipo da função
+                // Por enquanto, apenas verificamos se a expressão é válida
+                check_arithmetic_expr(node->filho1, line);
             }
             break;
         }
@@ -813,50 +719,98 @@ void check_statement(ASTNode *node) {
         case AST_CONTINUE:
             // Nada a verificar para break e continue
             break;
-            
+        
+        case AST_BLOCK: {
+            // Verificar cada statement no bloco
+            ASTNode *stmt = node->filho1;
+            while (stmt) {
+                check_statement(stmt);
+                stmt = stmt->prox;
+            }
+            break;
+        }
+        
         case AST_VAR_DECL:
             check_var_declaration(node);
             break;
-            
+        
+        case AST_FUNC_DECL:
+            check_func_declaration(node);
+            break;
+        
         case AST_ASSIGN:
+        case AST_PLUS_ASSIGN:
+        case AST_MINUS_ASSIGN:
+        case AST_MULT_ASSIGN:
+        case AST_DIV_ASSIGN:
             check_assignment(node, line);
             break;
-            
-        default:
-            // Para outros tipos de statements, verificar como expressão
-            check_arithmetic_expr(node, line);
+        
+        case AST_CALL: {
+            // Verificar a chamada de função
+            // Aqui precisaríamos verificar se a função existe e se os argumentos são compatíveis
+            // Por enquanto, apenas verificamos se os argumentos são válidos
+            ASTNode *args = node->filho1;
+            while (args) {
+                if (args->tipo == AST_ARG_LIST) {
+                    check_arithmetic_expr(args->filho1, get_node_line(args));
+                }
+                args = args->prox;
+            }
             break;
-    }
-    
-    // Se o nó tem próximo (lista de statements), verificar também
-    if (node->prox) {
-        check_statement(node->prox);
+        }
+        
+        case AST_EMPTY:
+            // Nada a verificar para statements vazios
+            break;
+        
+        // Adicionando casos para outros tipos de nós que podem aparecer como statements
+        case AST_STRUCT:
+        case AST_UNION:
+        case AST_ENUM:
+        case AST_TYPEDEF:
+            // Implementação básica para evitar erros de compilação
+            // Em uma implementação completa, verificaríamos a validade desses tipos
+            break;
+        
+        case AST_INIT:
+            // Verificar inicializações de arrays ou structs
+            // Por enquanto, apenas uma implementação básica
+            if (node->filho1) {
+                check_arithmetic_expr(node->filho1, line);
+            }
+            break;
+        
+        case AST_LITERAL_INT:
+        case AST_LITERAL_FLOAT:
+        case AST_LITERAL_STRING:
+        case AST_LITERAL_CHAR:
+        case AST_LITERAL_HEX:
+        case AST_VAR:
+        case AST_BINARY_OP:
+        case AST_UNARY_OP:
+        case AST_MEMBER_ACCESS:
+        case AST_TYPE:
+        case AST_PARAM:
+        case AST_CASE:
+        case AST_DEFAULT:
+            // Estes nós normalmente não aparecem como statements independentes,
+            // mas como parte de expressões ou outras construções
+            // Não há verificação específica a ser feita aqui
+            break;
+        
+        default:
+            semantic_error("Tipo de statement desconhecido", line);
     }
 }
 
-// Função principal para realizar análise semântica
+// Função principal para realizar a análise semântica
 void perform_semantic_analysis(ASTNode *root) {
-    if (!root) {
-        return;
-    }
-    
+    // Inicializar o sistema de análise semântica
     init_semantic_analysis();
     
-    // Verificar cada declaração no nível global
-    ASTNode *current = root;
-    while (current) {
-        if (current->tipo == AST_VAR_DECL) {
-            check_var_declaration(current);
-        } else if (current->tipo == AST_FUNC_DECL) {
-            // Verificar declaração de função
-            // Aqui implementaríamos a verificação de funções
-        } else {
-            // Outros tipos de declarações globais
-            check_statement(current);
-        }
-        
-        current = current->prox;
-    }
+    // Verificar a árvore AST
+    check_statement(root);
     
     // Imprimir resumo dos erros
     if (error_count > 0) {
@@ -865,5 +819,6 @@ void perform_semantic_analysis(ASTNode *root) {
         fprintf(stderr, "\nAnálise semântica concluída sem erros.\n");
     }
     
+    // Liberar recursos
     cleanup_semantic_analysis();
 }
