@@ -14,6 +14,9 @@ OUTPUT_DIR="visualization"
 COMPILER="./exemplo"
 DOT_CMD=$(which dot 2>/dev/null)
 
+# Verifica se o diretório de saída existe
+mkdir -p "$OUTPUT_DIR"
+
 # Verifica se o compilador existe
 if [ ! -f "$COMPILER" ]; then
     echo -e "${RED}Erro: Compilador não encontrado em $COMPILER${NC}"
@@ -27,8 +30,25 @@ if [ -z "$DOT_CMD" ]; then
     echo "Você pode instalar com: sudo apt-get install graphviz"
 fi
 
-# Cria diretório de saída se não existir
-mkdir -p "$OUTPUT_DIR"
+# Função para criar um arquivo de exemplo mínimo que o parser pode processar
+create_minimal_example() {
+    local example_file="$OUTPUT_DIR/minimal_example.c"
+    
+    cat > "$example_file" << EOL
+// Exemplo mínimo compatível com o parser atual
+a + b;
+a - b;
+a * b;
+a / b;
+a > b;
+a < b;
+a == b;
+a != b;
+a = 10;
+EOL
+    
+    echo "$example_file"
+}
 
 # Função para gerar visualização da AST em formato DOT
 generate_ast_dot() {
@@ -159,54 +179,48 @@ digraph AST {
     
     root [label="Program: $filename"];
     
-    // Exemplo de AST para um programa simples
-    func_main [label="Function: main"];
-    root -> func_main;
+    // Exemplo de AST para expressões simples compatíveis com o parser atual
+    expr1 [label="Expression"];
+    expr2 [label="Expression"];
+    expr3 [label="Expression"];
+    expr4 [label="Expression"];
     
-    decl_a [label="Declaration: int a"];
-    decl_b [label="Declaration: int b"];
-    assign_a [label="Assignment: a = 10"];
-    assign_b [label="Assignment: b = 5"];
-    if_stmt [label="If Statement"];
-    condition [label="Condition: a > b"];
-    then_block [label="Then Block"];
-    assign_result [label="Assignment: a = a - b"];
-    return_stmt [label="Return: 0"];
+    root -> expr1;
+    root -> expr2;
+    root -> expr3;
+    root -> expr4;
     
-    func_main -> decl_a;
-    func_main -> decl_b;
-    func_main -> assign_a;
-    func_main -> assign_b;
-    func_main -> if_stmt;
-    func_main -> return_stmt;
-    
-    if_stmt -> condition;
-    if_stmt -> then_block;
-    then_block -> assign_result;
-    
-    // Exemplo de expressões
-    const_10 [label="Constant: 10"];
-    const_5 [label="Constant: 5"];
-    const_0 [label="Constant: 0"];
-    
-    assign_a -> const_10;
-    assign_b -> const_5;
-    return_stmt -> const_0;
-    
-    // Exemplo de operadores
-    op_gt [label="Operator: >"];
+    // Expressão 1: a + b
+    op_plus [label="Operator: +"];
     var_a1 [label="Variable: a"];
     var_b1 [label="Variable: b"];
-    condition -> op_gt;
-    op_gt -> var_a1;
-    op_gt -> var_b1;
+    expr1 -> op_plus;
+    op_plus -> var_a1;
+    op_plus -> var_b1;
     
+    // Expressão 2: a - b
     op_minus [label="Operator: -"];
     var_a2 [label="Variable: a"];
     var_b2 [label="Variable: b"];
-    assign_result -> op_minus;
+    expr2 -> op_minus;
     op_minus -> var_a2;
     op_minus -> var_b2;
+    
+    // Expressão 3: a * b
+    op_mult [label="Operator: *"];
+    var_a3 [label="Variable: a"];
+    var_b3 [label="Variable: b"];
+    expr3 -> op_mult;
+    op_mult -> var_a3;
+    op_mult -> var_b3;
+    
+    // Expressão 4: a = 10
+    op_assign [label="Operator: ="];
+    var_a4 [label="Variable: a"];
+    const_10 [label="Constant: 10"];
+    expr4 -> op_assign;
+    op_assign -> var_a4;
+    op_assign -> const_10;
 }
 EOL
 }
@@ -224,21 +238,9 @@ digraph SymbolTable {
     
     symtab [label="Symbol Table: $filename"];
     
-    // Escopo global
-    global_scope [label="{Global Scope|{Symbol|Type|Line|Scope}|{a|int|2|global}|{b|int|3|global}|{main|function|5|global}}"];
+    // Escopo global com símbolos básicos
+    global_scope [label="{Global Scope|{Symbol|Type|Line}|{a|int|1}|{b|int|1}}"];
     symtab -> global_scope;
-    
-    // Escopo da função main
-    main_scope [label="{Function: main|{Symbol|Type|Line|Scope}|{result|int|6|main}|{i|int|8|main}}"];
-    global_scope -> main_scope;
-    
-    // Escopo do bloco if
-    if_scope [label="{If Block|{Symbol|Type|Line|Scope}|{temp|int|10|if-block}}"];
-    main_scope -> if_scope;
-    
-    // Escopo do loop for
-    for_scope [label="{For Loop|{Symbol|Type|Line|Scope}|{j|int|15|for-loop}}"];
-    main_scope -> for_scope;
 }
 EOL
 }
@@ -255,106 +257,57 @@ create_example_ast_json() {
   "filename": "$filename",
   "children": [
     {
-      "type": "FunctionDeclaration",
-      "name": "main",
-      "returnType": "int",
-      "parameters": [],
-      "body": {
-        "type": "CompoundStatement",
-        "children": [
-          {
-            "type": "VariableDeclaration",
-            "name": "a",
-            "dataType": "int",
-            "line": 2
-          },
-          {
-            "type": "VariableDeclaration",
-            "name": "b",
-            "dataType": "int",
-            "line": 3
-          },
-          {
-            "type": "AssignmentExpression",
-            "operator": "=",
-            "left": {
-              "type": "Identifier",
-              "name": "a"
-            },
-            "right": {
-              "type": "Literal",
-              "value": 10,
-              "dataType": "int"
-            },
-            "line": 4
-          },
-          {
-            "type": "AssignmentExpression",
-            "operator": "=",
-            "left": {
-              "type": "Identifier",
-              "name": "b"
-            },
-            "right": {
-              "type": "Literal",
-              "value": 5,
-              "dataType": "int"
-            },
-            "line": 5
-          },
-          {
-            "type": "IfStatement",
-            "condition": {
-              "type": "BinaryExpression",
-              "operator": ">",
-              "left": {
-                "type": "Identifier",
-                "name": "a"
-              },
-              "right": {
-                "type": "Identifier",
-                "name": "b"
-              }
-            },
-            "thenStatement": {
-              "type": "CompoundStatement",
-              "children": [
-                {
-                  "type": "AssignmentExpression",
-                  "operator": "=",
-                  "left": {
-                    "type": "Identifier",
-                    "name": "a"
-                  },
-                  "right": {
-                    "type": "BinaryExpression",
-                    "operator": "-",
-                    "left": {
-                      "type": "Identifier",
-                      "name": "a"
-                    },
-                    "right": {
-                      "type": "Identifier",
-                      "name": "b"
-                    }
-                  }
-                }
-              ]
-            },
-            "elseStatement": null,
-            "line": 6
-          },
-          {
-            "type": "ReturnStatement",
-            "expression": {
-              "type": "Literal",
-              "value": 0,
-              "dataType": "int"
-            },
-            "line": 10
-          }
-        ]
-      }
+      "type": "BinaryExpression",
+      "operator": "+",
+      "left": {
+        "type": "Identifier",
+        "name": "a"
+      },
+      "right": {
+        "type": "Identifier",
+        "name": "b"
+      },
+      "line": 1
+    },
+    {
+      "type": "BinaryExpression",
+      "operator": "-",
+      "left": {
+        "type": "Identifier",
+        "name": "a"
+      },
+      "right": {
+        "type": "Identifier",
+        "name": "b"
+      },
+      "line": 2
+    },
+    {
+      "type": "BinaryExpression",
+      "operator": "*",
+      "left": {
+        "type": "Identifier",
+        "name": "a"
+      },
+      "right": {
+        "type": "Identifier",
+        "name": "b"
+      },
+      "line": 3
+    },
+    {
+      "type": "AssignmentExpression",
+      "operator": "=",
+      "left": {
+        "type": "Identifier",
+        "name": "a"
+      },
+      "right": {
+        "type": "Literal",
+        "value": 10,
+        "dataType": "int"
+      },
+      "line": 4
     }
   ]
 }
@@ -377,64 +330,14 @@ create_example_symtab_json() {
         {
           "name": "a",
           "type": "int",
-          "line": 2,
+          "line": 1,
           "scope": "global"
         },
         {
           "name": "b",
           "type": "int",
-          "line": 3,
+          "line": 1,
           "scope": "global"
-        },
-        {
-          "name": "main",
-          "type": "function",
-          "returnType": "int",
-          "parameters": [],
-          "line": 5,
-          "scope": "global"
-        }
-      ]
-    },
-    {
-      "name": "main",
-      "parent": "global",
-      "symbols": [
-        {
-          "name": "result",
-          "type": "int",
-          "line": 6,
-          "scope": "main"
-        },
-        {
-          "name": "i",
-          "type": "int",
-          "line": 8,
-          "scope": "main"
-        }
-      ]
-    },
-    {
-      "name": "if-block",
-      "parent": "main",
-      "symbols": [
-        {
-          "name": "temp",
-          "type": "int",
-          "line": 10,
-          "scope": "if-block"
-        }
-      ]
-    },
-    {
-      "name": "for-loop",
-      "parent": "main",
-      "symbols": [
-        {
-          "name": "j",
-          "type": "int",
-          "line": 15,
-          "scope": "for-loop"
         }
       ]
     }
@@ -448,18 +351,28 @@ main() {
     echo -e "${YELLOW}Iniciando geração de visualizações...${NC}"
     echo "------------------------"
     
-    # Seleciona um arquivo de teste válido para visualização
+    # Cria um exemplo mínimo que o parser pode processar
+    minimal_example=$(create_minimal_example)
+    echo -e "${YELLOW}Criado exemplo mínimo compatível com o parser: $minimal_example${NC}"
+    
+    # Gera visualizações para o exemplo mínimo
+    generate_ast_dot "$minimal_example"
+    generate_symbol_table_dot "$minimal_example"
+    generate_ast_json "$minimal_example"
+    generate_symbol_table_json "$minimal_example"
+    
+    # Tenta também com um arquivo de teste válido, mas com tratamento de erro robusto
     test_file="tests/valid/test_declarations.c"
     
     if [ -f "$test_file" ]; then
+        echo -e "\n${YELLOW}Tentando visualização com arquivo de teste: $test_file${NC}"
         # Gera visualizações para o arquivo de teste
         generate_ast_dot "$test_file"
         generate_symbol_table_dot "$test_file"
         generate_ast_json "$test_file"
         generate_symbol_table_json "$test_file"
     else
-        echo -e "${RED}Erro: Arquivo de teste $test_file não encontrado${NC}"
-        exit 1
+        echo -e "\n${YELLOW}Arquivo de teste $test_file não encontrado, usando apenas o exemplo mínimo${NC}"
     fi
     
     echo -e "\n${GREEN}Visualizações geradas com sucesso no diretório $OUTPUT_DIR${NC}"
@@ -468,6 +381,8 @@ main() {
     echo "  - DOT: Formato para visualização gráfica (requer Graphviz para conversão em imagem)"
     echo "  - JSON: Formato para processamento e visualização em ferramentas web"
     echo "------------------------"
+    echo -e "${YELLOW}Nota:${NC} Devido às limitações do parser atual, algumas visualizações são exemplos simplificados."
+    echo "O parser atual tem suporte limitado para declarações globais, funções completas, estruturas de controle aninhadas e arrays."
 }
 
 # Executa a função principal
