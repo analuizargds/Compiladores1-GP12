@@ -108,4 +108,48 @@ make rebuild
 
 ## Contribuidores
 
-- Lucas Meireles
+<div  class="HomeProfiles" style="justify-content: center; display: flex; flex-direction: column">
+
+<a href="https://github.com/analuizargds" target="_blank">
+    <figure>
+      <img  src="https://github.com/analuizargds.png" alt="Foto da Ana Luiza Rodrigues" width="220px" style="border-radius: 6%">
+      <figcaption style="font-weight: bold; color: #000000;">Ana Luiza Rodrigues</figcaption>
+    </figure>
+  </a>
+
+<a href="https://github.com/WonnzDA" target="_blank">
+    <figure>
+      <img  src="https://github.com/WonnzDA.png" alt="Foto da Julia Lopes" width="220px" style="border-radius: 6%">
+      <figcaption style="font-weight: bold; color: #000000;">Julia Lopes</figcaption>
+    </figure>
+  </a>
+
+<a href="https://github.com/LuaMedeiros" target="_blank">
+    <figure>
+      <img  src="https://github.com/LuaMedeiros.png" alt="Foto da Luana Medeiros" width="220px" style="border-radius: 6%">
+      <figcaption style="font-weight: bold; color: #000000;">Luana Medeiros</figcaption>
+    </figure>
+  </a>
+
+<a href="https://github.com/Katuner" target="_blank">
+    <figure>
+      <img  src="https://github.com/Katuner.png" alt="Foto do Lucas Meireles" width="220px" style="border-radius: 6%">
+      <figcaption style="font-weight: bold; color: #000000;">Lucas Meireles</figcaption>
+    </figure>
+  </a>
+
+<a href="https://github.com/milenaaires" target="_blank">
+    <figure>
+      <img  src="https://github.com/milenaaires.png" alt="Foto da Milena Aires" width="220px" style="border-radius: 6%">
+      <figcaption style="font-weight: bold; color: #000000;">Milena Aires</figcaption>
+    </figure>
+  </a>
+
+<a href="https://github.com/Rodrigomfab88" target="_blank">
+    <figure>
+      <img  src="https://github.com/Rodrigomfab88.png" alt="Foto do Rodrigo Mattos" width="220px" style="border-radius: 6%">
+      <figcaption style="font-weight: bold; color: #000000;">Rodrigo Mattos</figcaption>
+    </figure>
+  </a>
+
+</div>
