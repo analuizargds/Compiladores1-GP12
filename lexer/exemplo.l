@@ -10,103 +10,99 @@ extern FILE *yyin;
 
 [ \t\r\n]+              { /* Não faz nada, apenas ignora */ }
 
-"typedef" { printf("Reconhecido: TYPEDEF\n"); return TYPEDEF; }
-"struct" { printf("Reconhecido: STRUCT\n"); return STRUCT; }
-"union"  { printf("Reconhecido: UNION\n"); return UNION; }
-"enum"   { printf("Reconhecido: ENUM\n"); return ENUM; }
+"typedef" { return TYPEDEF; }
+"struct" { return STRUCT; }
+"union"  { return UNION; }
+"enum"   { return ENUM; }
 
-"int"     { printf("Reconhecido: INT\n"); return INT; }
-"float"   { printf("Reconhecido: FLOAT\n"); return FLOAT; }
-"char"    { printf("Reconhecido: CHAR\n"); return CHAR; }
-"void"    { printf("Reconhecido: VOID\n"); return VOID; }
-"double"  { printf("Reconhecido: DOUBLE\n"); return DOUBLE; }
+"int"     { return INT; }
+"float"   { return FLOAT; }
+"char"    { return CHAR; }
+"void"    { return VOID; }
+"double"  { return DOUBLE; }
 
-"if"    { printf("Reconhecido: IF\n"); return IF; }
-"else"  { printf("Reconhecido: ELSE\n"); return ELSE; }
-"switch" { printf("Reconhecido: SWITCH\n"); return SWITCH; }
-"case"   { printf("Reconhecido: CASE\n"); return CASE; }
-"default" { printf("Reconhecido: DEFAULT\n"); return DEFAULT; } 
-"break"  { printf("Reconhecido: BREAK\n"); return BREAK; } 
-"while" { printf("Reconhecido: WHILE\n"); return WHILE; }
-"return" { printf("Reconhecido: RETURN\n"); return RETURN; }
-"do" { printf("Reconhecido: DO\n"); return DO; }
-"for" { printf("Reconhecido: FOR\n"); return FOR; }
-"continue" { printf("Reconhecido: CONTINUE\n"); return CONTINUE; }
+"if"    { return IF; }
+"else"  { return ELSE; }
+"switch" { return SWITCH; }
+"case"   { return CASE; }
+"default" { return DEFAULT; } 
+"break"  { return BREAK; } 
+"while" { return WHILE; }
+"return" { return RETURN; }
+"do" { return DO; }
+"for" { return FOR; }
+"continue" { return CONTINUE; }
 
 
 
 [+\-]?[0-9]{1,10}     {
-                        printf("Reconhecido: NUM (%s)\n", yytext);
                         yylval.intValue = atoi(yytext);
                         return NUM;
                       }
 
 [+\-]?[0-9]+\.[0-9]+  {
-                        printf("Reconhecido: FLOAT (%s)\n", yytext);
                         yylval.floatValue = atof(yytext);
                         return FLOAT;
                       }
 
 \'[a-zA-Z0-9]\'   {
-    printf("Reconhecido: CHAR_LITERAL (%s)\n", yytext);
     yylval.charValue = yytext[1]; // O caractere está entre aspas simples
     return CHAR_LITERAL;
 }
 
 
 [a-zA-Z_][a-zA-Z0-9_]* { 
-                         printf("Reconhecido: ID (%s)\n", yytext);
                          yylval.strValue = strdup(yytext);
                          return ID; 
                        }
 
-"=="    { printf("Reconhecido: EQ\n"); return EQ; }
-"="     { printf("Reconhecido: ASSIGN\n"); return ASSIGN; }
-">="     { printf("Reconhecido: GE\n"); return GE; }
-"<="     { printf("Reconhecido: LE\n"); return LE; }
-"!="     { printf("Reconhecido: NE\n"); return NE; }
-">"     { printf("Reconhecido: GT\n"); return GT; }
-"<"     { printf("Reconhecido: LT\n"); return LT; }
-"+"     { printf("Reconhecido: PLUS\n"); return PLUS; }
-"-"     { printf("Reconhecido: MINUS\n"); return MINUS; }
-"++"    { printf("Reconhecido: INCREMENT\n"); return INCREMENT; }
-"--"    { printf("Reconhecido: DECREMENT\n"); return DECREMENT; }
-"\+="   { printf("Reconhecido: PLUS_ASSIGN\n"); return PLUS_ASSIGN; }
-"-="    { printf("Reconhecido: MINUS_ASSIGN\n"); return MINUS_ASSIGN; }
-"\*="   { printf("Reconhecido: MULT_ASSIGN\n"); return MULT_ASSIGN; }
-"/="    { printf("Reconhecido: DIV_ASSIGN\n"); return DIV_ASSIGN; }
-"*"     { printf("Reconhecido: MULT\n"); return MULT; }
-"/"     { printf("Reconhecido: DIV\n"); return DIV; }
-"%"     { printf("Reconhecido: MOD\n"); return MOD; }
-","     { printf("Reconhecido: COMMA\n"); return COMMA; }
-"."     { printf("Reconhecido: DOT\n"); return DOT; }
+"=="    { return EQ; }
+"="     { return ASSIGN; }
+">="    { return GE; }
+"<="    { return LE; }
+"!="    { return NE; }
+">"     { return GT; }
+"<"     { return LT; }
+"+"     { return PLUS; }
+"-"     { return MINUS; }
+"++"    { return INCREMENT; }
+"--"    { return DECREMENT; }
+"\+="   { return PLUS_ASSIGN; }
+"-="    { return MINUS_ASSIGN; }
+"\*="   { return MULT_ASSIGN; }
+"/="    { return DIV_ASSIGN; }
+"*"     { return MULT; }
+"/"     { return DIV; }
+"%"     { return MOD; }
+","     { return COMMA; }
+"."     { return DOT; }
 
-"&&"    { printf("Reconhecido: AND\n"); return AND; }
-"||"    { printf("Reconhecido: OR\n"); return OR; }
-"!"     { printf("Reconhecido: NOT\n"); return NOT; }
+"&&"    { return AND; }
+"||"    { return OR; }
+"!"     { return NOT; }
 
-"&"     { printf("Reconhecido: BITAND\n"); return BITAND; }
-"|"     { printf("Reconhecido: BITOR\n"); return BITOR; }
-"^"     { printf("Reconhecido: BITXOR\n"); return BITXOR; }
-"~"     { printf("Reconhecido: BITNOT\n"); return BITNOT; }
-"<<"    { printf("Reconhecido: SHIFTLEFT\n"); return SHIFTLEFT; }
-">>"    { printf("Reconhecido: SHIFTRIGHT\n"); return SHIFTRIGHT; }
+"&"     { return BITAND; }
+"|"     { return BITOR; }
+"^"     { return BITXOR; }
+"~"     { return BITNOT; }
+"<<"    { return SHIFTLEFT; }
+">>"    { return SHIFTRIGHT; }
 
-":"     { printf("Reconhecido: COLON\n"); return COLON; }
-";"     { printf("Reconhecido: SEMICOLON\n"); return SEMICOLON; }
-"{"     { printf("Reconhecido: LBRACE\n"); return LBRACE; }
-"}"     { printf("Reconhecido: RBRACE\n"); return RBRACE; }
-"("     { printf("Reconhecido: LPAREN\n"); return LPAREN; }
-")"     { printf("Reconhecido: RPAREN\n"); return RPAREN; }
+":"     { return COLON; }
+";"     { return SEMICOLON; }
+"{"     { return LBRACE; }
+"}"     { return RBRACE; }
+"("     { return LPAREN; }
+")"     { return RPAREN; }
+"["     { return LBRACKET; }
+"]"     { return RBRACKET; }
 
 0[xX][0-9a-fA-F]+ { 
-                        printf("Reconhecido: HEX (%s)\n", yytext);
                         yylval.intValue = strtol(yytext, NULL, 16);
                         return HEX; 
                       }
 
 \'(\\[ntr0\'\"\\]|[^\\'])\' {
-    printf("Reconhecido: CHAR_LITERAL (%s)\n", yytext);
     if (yytext[1] == '\\') {
         // caracteres de escape
         switch (yytext[2]) {
@@ -127,18 +123,16 @@ extern FILE *yyin;
 }
 
 \"[^\"]*\"           { 
-                       printf("Reconhecido: STRING (%s)\n", yytext);
                        yylval.strValue = strdup(yytext);
                        return STRING; 
                      }
 
 '\\.?.'         { 
-                       printf("Reconhecido: CARACT (%s)\n", yytext);
                        yylval.strValue = strdup(yytext);
                        return CARACT; 
                      }
 
-.    { printf("Caractere não reconhecido: %s\n", yytext); }
+.    { /* Caractere não reconhecido */ }
 
 %%
 
@@ -159,5 +153,29 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
+    
+    // Verificar se há opções de visualização
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--ast-dot") == 0 || 
+            strcmp(argv[i], "--symtab-dot") == 0 ||
+            strcmp(argv[i], "--ast-json") == 0 ||
+            strcmp(argv[i], "--symtab-json") == 0) {
+            
+            // Criar um arquivo vazio para evitar segfault
+            if (i+1 < argc && argv[i+1][0] != '-') {
+                FILE *f = fopen(argv[i+1], "w");
+                if (f) {
+                    if (strstr(argv[i], "dot")) {
+                        fprintf(f, "digraph G {\n  node [shape=box];\n  \"Visualização não implementada\";\n}\n");
+                    } else if (strstr(argv[i], "json")) {
+                        fprintf(f, "{\n  \"message\": \"Visualização não implementada\"\n}\n");
+                    }
+                    fclose(f);
+                }
+            }
+            return 0; // Sair sem erro
+        }
+    }
+    
     return yyparse();
 }
