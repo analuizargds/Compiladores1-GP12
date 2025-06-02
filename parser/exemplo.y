@@ -7,7 +7,13 @@
 int yylex(void);
 void yyerror(const char *s);
 extern FILE *yyin;
+extern int yylineno;
 ASTNode* root;
+
+// Função para reportar erros de construções não suportadas
+void report_unsupported_feature(const char* feature, int line) {
+    fprintf(stderr, "Erro na linha %d: %s não é suportado nesta versão do compilador\n", line, feature);
+}
 %}
 
 %token NUM
@@ -27,6 +33,9 @@ ASTNode* root;
 %token PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
 %token AND OR NOT
 %token BITAND BITOR BITXOR BITNOT SHIFTLEFT SHIFTRIGHT
+
+// Tokens para construções não suportadas completamente
+%token LBRACKET RBRACKET INCLUDE POINTER AMPERSAND
 
 %right ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
 %left OR
@@ -89,6 +98,10 @@ declaracao:
     | fun_declaracao { $$ = $1; }
     | stmt { $$ = $1; }
     | declaracao_tipo { $$ = $1; }
+    | error SEMICOLON { 
+        $$ = NULL; 
+        yyerror("Declaração inválida"); 
+    }
     ;
 
 declaracao_tipo:
@@ -100,11 +113,19 @@ declaracao_tipo:
 
 switch_stmt:
     SWITCH LPAREN expr RPAREN LBRACE case_list RBRACE { $$ = criarNoSwitch($3, $6); }
+    | SWITCH LPAREN expr RPAREN error { 
+        $$ = NULL; 
+        yyerror("Estrutura switch incompleta ou inválida"); 
+    }
     ;
 
 for_stmt:
     FOR LPAREN expr SEMICOLON expr SEMICOLON expr RPAREN stmt {
         $$ = criarNoFor($3, $5, $7, $9);
+    }
+    | FOR LPAREN error RPAREN stmt {
+        $$ = NULL;
+        yyerror("Formato inválido para estrutura for");
     }
 ;
 
@@ -121,6 +142,10 @@ for_parer:
 
 do_stmt:
     DO stmt WHILE LPAREN expr RPAREN SEMICOLON { $$ = criarNoDoWhile($5, $2); }
+    | DO stmt WHILE LPAREN error RPAREN SEMICOLON {
+        $$ = NULL;
+        yyerror("Expressão inválida na condição do do-while");
+    }
     ;
 
 continue_stmt:
@@ -135,10 +160,16 @@ case_list:
 case_stmt:
     CASE expr COLON comandos_break { $$ = criarNoCase($2, $4); }
     | DEFAULT COLON comandos_break { $$ = criarNoCase(NULL, $3); }
+    | CASE error COLON { 
+        $$ = NULL; 
+        yyerror("Expressão inválida em case"); 
+    }
     ;
 
 comandos_break:
     comandos_opt BREAK SEMICOLON { $$ = concatenarStmt($1, criarNoBreak()); }
+    | comandos_opt { $$ = $1; }
+    ;
 
 comandos_opt:
     /* vazio */ { $$ = NULL; }
@@ -147,6 +178,10 @@ comandos_opt:
 
 declaracao_variavel:
     tipo lista_variaveis { $$ = criarNoVarDecl($2->valor_str, criarNoType($1->valor_str)); }
+    | tipo error { 
+        $$ = NULL; 
+        yyerror("Declaração de variável inválida"); 
+    }
 ;
 
 tipo:
@@ -158,6 +193,10 @@ tipo:
     | STRUCT ID { $$ = criarNoUnion("struct", $2); }
     | UNION ID { $$ = criarNoUnion("union", $2); }
     | ENUM ID { $$ = criarNoEnum($2); }
+    | tipo MULT {
+        $$ = NULL;
+        report_unsupported_feature("Ponteiros", yylineno);
+    }
     ;
 
 lista_variaveis:
@@ -169,10 +208,18 @@ variavel:
     ID { $$ = criarNoVar($1); }
     | ID ASSIGN expr { $$ = criarNoAssign('=', criarNoVar($1), $3); }
     | ID ASSIGN inicializador { $$ = criarNoAssign('=', criarNoVar($1), $3); }
+    | ID error { 
+        $$ = NULL; 
+        yyerror("Erro na declaração ou inicialização de variável"); 
+    }
     ;
 
 fun_declaracao:
     tipo ID LPAREN parametros RPAREN composto_stmt { $$ = criarNoFuncDecl($2, $1, $4, $6); }
+    | tipo ID LPAREN parametros RPAREN error { 
+        $$ = NULL; 
+        yyerror("Corpo de função inválido ou ausente"); 
+    }
     ;
 
 parametros:
@@ -187,10 +234,18 @@ lista_parametros:
 
 param:
     tipo ID { $$ = criarNoParam($2, $1); }
+    | tipo error { 
+        $$ = NULL; 
+        yyerror("Parâmetro inválido"); 
+    }
     ;
 
 inicializador:
     LBRACE lista_inicializadores RBRACE { $$ = $2; }
+    | LBRACE error RBRACE { 
+        $$ = NULL; 
+        yyerror("Lista de inicialização inválida"); 
+    }
     ;
 
 lista_inicializadores:
@@ -209,6 +264,10 @@ stmt:
     | do_stmt { $$ = $1; }
     | for_stmt { $$ = $1; }
     | continue_stmt { $$ = $1; }
+    | error SEMICOLON { 
+        $$ = NULL; 
+        yyerror("Comando inválido"); 
+    }
     ;
 
 expr_stmt:
@@ -219,20 +278,36 @@ expr_stmt:
 composto_stmt:
     LBRACE lista_declaracoes RBRACE { $$ = $2; }
     | LBRACE RBRACE { $$ = NULL; }
+    | LBRACE error RBRACE { 
+        $$ = NULL; 
+        yyerror("Bloco de comandos com erro"); 
+    }
     ;
 
 if_stmt:
     IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE { $$ = criarNoIf($3, $5, NULL); }
     | IF LPAREN expr RPAREN stmt ELSE stmt { $$ = criarNoIf($3, $5, $7); }
+    | IF LPAREN error RPAREN stmt { 
+        $$ = NULL; 
+        yyerror("Expressão condicional inválida no if"); 
+    }
 ;
 
 while_stmt:
     WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
+    | WHILE LPAREN error RPAREN stmt { 
+        $$ = NULL; 
+        yyerror("Expressão condicional inválida no while"); 
+    }
 ;
 
 return_stmt:
     RETURN expr SEMICOLON { $$ = criarNoReturn($2); }
     | RETURN SEMICOLON { $$ = criarNoReturn(NULL); }
+    | RETURN error SEMICOLON { 
+        $$ = NULL; 
+        yyerror("Expressão de retorno inválida"); 
+    }
 ;
 
 expr:
@@ -265,6 +340,10 @@ atrib_expr:
             $1, 
             criarNoBinOp("/", $1, $3)
         ); 
+    }
+    | var error { 
+        $$ = NULL; 
+        yyerror("Operação de atribuição inválida"); 
     }
     ;
 
@@ -352,10 +431,18 @@ fator:
 var:
     ID { $$ = criarNoVar($1); }
     | var DOT ID { $$ = criarNoVar($3); }
+    | ID '[' expr ']' {
+        $$ = NULL;
+        report_unsupported_feature("Arrays", yylineno);
+    }
 ;
 
 chamada:
     ID LPAREN argumentos RPAREN { $$ = criarNoCall($1, $3); }
+    | ID LPAREN error RPAREN { 
+        $$ = NULL; 
+        yyerror("Lista de argumentos inválida"); 
+    }
 ;
 
 argumentos:
@@ -366,10 +453,18 @@ argumentos:
 lista_args:
     lista_args COMMA expr { $$ = concatenarArg($1, $3); }
     | expr { $$ = $1; }
+    | lista_args COMMA error { 
+        $$ = NULL; 
+        yyerror("Argumento inválido na lista"); 
+    }
 ;
 
 typedef_declaracao:
     TYPEDEF tipo ID SEMICOLON { $$ = criarNoVar($3); }
+    | TYPEDEF error SEMICOLON { 
+        $$ = NULL; 
+        yyerror("Declaração typedef inválida"); 
+    }
 ;
 
 lista_identificadores:
@@ -379,14 +474,26 @@ lista_identificadores:
 
 struct_declaracao:
     STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoUnion("struct", $2); }
+    | STRUCT ID LBRACE error RBRACE SEMICOLON { 
+        $$ = NULL; 
+        yyerror("Corpo de struct inválido"); 
+    }
     ;
 
 union_declaracao:
     UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoUnion("union", $2); }
+    | UNION ID LBRACE error RBRACE SEMICOLON { 
+        $$ = NULL; 
+        yyerror("Corpo de union inválido"); 
+    }
     ;
 
 enum_declaracao:
     ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON { $$ = criarNoEnum($2); }
+    | ENUM ID LBRACE error RBRACE SEMICOLON { 
+        $$ = NULL; 
+        yyerror("Lista de enumeradores inválida"); 
+    }
     ;
 
 %%
