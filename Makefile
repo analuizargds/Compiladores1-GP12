@@ -56,46 +56,26 @@ $(TEST_SEMANTIC): semantic/test_semantic.c $(SEMANTIC_OBJ) $(AST_OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ -lfl
 
 parser/exemplo.tab.c parser/exemplo.tab.h: parser/exemplo.y
-	cd parser && bison -d exemplo.y
+	@cd parser && bison -d exemplo.y
 
 lexer/lex.yy.c: lexer/exemplo.l parser/exemplo.tab.h
-	cd lexer && flex exemplo.l
+	@cd lexer && flex exemplo.l
 
 # Regras para testes e visualização
 test: $(MAIN)
-	@echo "Executando testes automatizados..."
-	@echo "Verificando existência do script: $(RUN_TESTS_SCRIPT)"
 	@if [ ! -f "$(RUN_TESTS_SCRIPT)" ]; then \
-		echo "ERRO: Script de testes não encontrado em: $(RUN_TESTS_SCRIPT)"; \
-		echo "Diretório atual: $(CURDIR)"; \
-		echo "Listando arquivos:"; \
-		ls -la; \
 		exit 1; \
 	fi
-	@echo "Definindo permissões de execução para: $(RUN_TESTS_SCRIPT)"
-	@chmod +x "$(RUN_TESTS_SCRIPT)"
-	@echo "Executando: $(RUN_TESTS_SCRIPT)"
-	@bash "$(RUN_TESTS_SCRIPT)"
+	@chmod +x "$(RUN_TESTS_SCRIPT)" 2>/dev/null
+	@bash "$(RUN_TESTS_SCRIPT)" 2>/dev/null
 
 visualize: $(MAIN)
-	@echo "Gerando visualizações da AST e tabela de símbolos..."
-	@echo "Verificando existência do script: $(VISUALIZE_SCRIPT)"
 	@if [ ! -f "$(VISUALIZE_SCRIPT)" ]; then \
-		echo "ERRO: Script de visualização não encontrado em: $(VISUALIZE_SCRIPT)"; \
-		echo "Diretório atual: $(CURDIR)"; \
-		echo "Listando arquivos:"; \
-		ls -la; \
 		exit 1; \
 	fi
-	@mkdir -p $(VISUALIZATION_DIR)
-	@echo "Definindo permissões de execução para: $(VISUALIZE_SCRIPT)"
-	@chmod +x "$(VISUALIZE_SCRIPT)"
-	@echo "Executando: $(VISUALIZE_SCRIPT)"
+	@mkdir -p $(VISUALIZATION_DIR) 2>/dev/null
+	@chmod +x "$(VISUALIZE_SCRIPT)" 2>/dev/null
 	@bash "$(VISUALIZE_SCRIPT)"
-
-# Verifica se o Graphviz está instalado
-check-graphviz:
-	@which dot > /dev/null || (echo "Graphviz não está instalado. Instale com: sudo apt-get install graphviz" && exit 1)
 
 # Limpa arquivos gerados
 clean:
@@ -106,4 +86,4 @@ clean:
 # Limpa e reconstrói tudo
 rebuild: clean all
 
-.PHONY: all clean test visualize check-graphviz rebuild
+.PHONY: all clean test visualize rebuild
