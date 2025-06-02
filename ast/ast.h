@@ -1,7 +1,8 @@
 #ifndef AST_H
 #define AST_H
 
-typedef enum {
+typedef enum
+{
     AST_LITERAL_INT,
     AST_LITERAL_FLOAT,
     AST_LITERAL_STRING,
@@ -23,6 +24,7 @@ typedef enum {
     AST_WHILE,
     AST_FOR,
     AST_DO_WHILE,
+    AST_SWITCH,
     AST_RETURN,
     AST_BREAK,
     AST_CONTINUE,
@@ -38,7 +40,8 @@ typedef enum {
     AST_EMPTY,
 } ASTNodeType;
 
-typedef struct ASTNode {
+typedef struct ASTNode
+{
     ASTNodeType tipo;
     char *valor_str;
     int valor_int;
@@ -76,6 +79,8 @@ ASTNode *criarNoFuncDecl(const char *id, ASTNode *tipo, ASTNode *params, ASTNode
 ASTNode *criarNoParam(const char *id, ASTNode *tipo);
 ASTNode *criarNoBlock(ASTNode *stmtList);
 ASTNode *criarNoCall(const char *id, ASTNode *args);
+
+ASTNode *criarNoSwitch(ASTNode *expr, ASTNode *cases);
 
 ASTNode *concatenarStmt(ASTNode *lista, ASTNode *no);
 ASTNode *concatenarParam(ASTNode *lista, ASTNode *no);
