@@ -1,105 +1,111 @@
-# Compiladores
+# Compilador C Simplificado
 
-## Introdução
+Este repositório contém a implementação de um compilador simplificado para a linguagem C, desenvolvido como parte do projeto da disciplina de Compiladores.
 
-Este repositório é destinado ao projeto da Disciplina Compiladores 1 da UnB-FCTE. Aqui você encontrará o objetivo, como executar o projeto e os colaboradores.
+## Estrutura do Projeto
 
-## Objetivo
-
-Construir um compilador que traduzirá o código de c para DOT utilizando as ferramentas Bison e Flex para análise sintática e léxica, respectivamente.
-
-## Como Executar
-
-#### Estrutura do Projeto
-
-- **parser/:** Contém os arquivos relacionados à análise sintática, incluindo a gramática definida em exemplo.y.
-- **lexer/:** Contém os arquivos relacionados à análise léxica, incluindo os padrões de tokens definidos em exemplo.l.
-- **src/:** Diretório reservado para o código principal do projeto.
-- **ast/:** Contém os arquivos relacionados a AST (Árvore Sintática Abstrata), representando as categorias sintáticas relevantes da linguagem.
-- **entrada.c:** Exemplo de entrada em C para ser processado pelo compilador.
-- **teste.c:** Outro exemplo de entrada em C.
-
-#### Pré-Requisitos
-
-Certifique-se de ter as seguintes ferramentas instaladas no seu sistema:
-
-- Bison
-- Flex
-- GCC
-
-#### Como Executar o Projeto
-
-**1 -** Navegue até o diretório parser e gere os arquivos do Bison:
+O projeto está organizado da seguinte forma:
 
 ```
-cd parser
-bison -d exemplo.y
+.
+├── ast/                # Implementação da Árvore Sintática Abstrata (AST)
+├── lexer/              # Analisador léxico (Flex)
+├── parser/             # Analisador sintático (Bison)
+├── semantic/           # Análise semântica
+├── tests/              # Arquivos de teste
+│   ├── valid/          # Testes com código válido
+│   └── invalid/        # Testes com código inválido
+├── visualization/      # Visualizações geradas da AST e tabela de símbolos
+├── exemplo             # Executável principal do compilador
+├── Makefile            # Regras de compilação
+├── run_tests.sh        # Script para automação de testes
+├── simbolos.c          # Implementação da tabela de símbolos
+├── simbolos.h          # Cabeçalho da tabela de símbolos
+└── visualize.sh        # Script para visualização da AST e tabela de símbolos
 ```
 
-**2 -** Navegue até o diretório lexer e gere os arquivos do Flex:
+## Requisitos
 
-```
-cd ../lexer
-flex exemplo.l
-```
+- GCC (GNU Compiler Collection)
+- Flex (Fast Lexical Analyzer)
+- Bison (GNU Parser Generator)
+- Graphviz (opcional, para visualização gráfica)
 
-**3 -** Volte para o diretório raiz e compile o projeto usando o GCC:
+## Compilação
 
-```
-cd ..
-gcc -o exemplo -I./parser ./parser/exemplo.tab.c ./lexer/lex.yy.c -lfl
-```
+Para compilar o projeto, execute:
 
-**4 -** Execute o compilador passando um arquivo de entrada em C:
-
-```
-./exemplo <arquivo de entrada>
+```bash
+make
 ```
 
-## Colaboradores - Grupo 12
+Isso irá gerar o executável `exemplo` que pode ser usado para compilar arquivos C simplificados.
 
-<div  class="HomeProfiles" style="justify-content: center; display: flex; flex-direction: column">
+## Testes
 
-<a href="https://github.com/analuizargds" target="_blank">
-    <figure>
-      <img  src="https://github.com/analuizargds.png" alt="Foto da Ana Luiza Rodrigues" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Ana Luiza Rodrigues</figcaption>
-    </figure>
-  </a>
+O projeto inclui um conjunto de testes automatizados para verificar o funcionamento do compilador. Para executar os testes:
 
-<a href="https://github.com/WonnzDA" target="_blank">
-    <figure>
-      <img  src="https://github.com/WonnzDA.png" alt="Foto da Julia Lopes" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Julia Lopes</figcaption>
-    </figure>
-  </a>
+```bash
+make test
+```
 
-<a href="https://github.com/LuaMedeiros" target="_blank">
-    <figure>
-      <img  src="https://github.com/LuaMedeiros.png" alt="Foto da Luana Medeiros" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Luana Medeiros</figcaption>
-    </figure>
-  </a>
+Isso executará o script `run_tests.sh` que testará o compilador com arquivos válidos e inválidos localizados nos diretórios `tests/valid` e `tests/invalid`.
 
-<a href="https://github.com/Katuner" target="_blank">
-    <figure>
-      <img  src="https://github.com/Katuner.png" alt="Foto do Lucas Meireles" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Lucas Meireles</figcaption>
-    </figure>
-  </a>
+## Visualização
 
-<a href="https://github.com/milenaaires" target="_blank">
-    <figure>
-      <img  src="https://github.com/milenaaires.png" alt="Foto da Milena Aires" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Milena Aires</figcaption>
-    </figure>
-  </a>
+Para gerar visualizações da AST (Árvore Sintática Abstrata) e da tabela de símbolos:
 
-<a href="https://github.com/Rodrigomfab88" target="_blank">
-    <figure>
-      <img  src="https://github.com/Rodrigomfab88.png" alt="Foto do Rodrigo Mattos" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Rodrigo Mattos</figcaption>
-    </figure>
-  </a>
+```bash
+make visualize
+```
 
-</div>
+Isso executará o script `visualize.sh` que gerará representações visuais em formatos DOT e JSON no diretório `visualization/`. Se o Graphviz estiver instalado, também serão geradas imagens PNG.
+
+Para verificar se o Graphviz está instalado:
+
+```bash
+make check-graphviz
+```
+
+## Arquivos de Teste
+
+### Testes Válidos
+
+- `test_declarations.c`: Testa diferentes tipos de declarações válidas
+- `test_expressions.c`: Testa diferentes tipos de expressões válidas
+- `test_control_structures.c`: Testa diferentes estruturas de controle válidas
+
+### Testes Inválidos
+
+- `test_syntax_errors.c`: Contém erros de sintaxe para testar o compilador
+- `test_semantic_errors.c`: Contém erros semânticos para testar o compilador
+- `test_scope_errors.c`: Contém erros de escopo para testar o compilador
+
+## Funcionalidades Implementadas
+
+- Análise léxica
+- Análise sintática
+- Construção da AST
+- Tabela de símbolos
+- Análise semântica
+- Verificação de tipos
+- Visualização da AST e tabela de símbolos
+- Testes automatizados
+
+## Limpeza
+
+Para limpar os arquivos gerados:
+
+```bash
+make clean
+```
+
+Para limpar e reconstruir tudo:
+
+```bash
+make rebuild
+```
+
+## Contribuidores
+
+- Lucas Meireles
