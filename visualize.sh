@@ -6,6 +6,7 @@
 # Cores para saída
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Diretórios e arquivos
@@ -122,6 +123,14 @@ main() {
         generate_symbol_table_dot "$test_file"
         generate_ast_json "$test_file"
         generate_symbol_table_json "$test_file"
+        
+        # Mensagem informativa sobre a localização dos arquivos gerados
+        echo ""
+        echo -e "${YELLOW}Informação:${NC} Os arquivos de visualização foram gerados no diretório:"
+        echo -e "  ${GREEN}$(pwd)/$OUTPUT_DIR/${NC}"
+        echo ""
+        echo "Arquivos gerados:"
+        ls -la "$OUTPUT_DIR" | grep -v "^total" | grep -v "^d" | awk '{print "  - " $9 " (" $5 " bytes)"}'
     else
         echo "Arquivo de teste $test_file não encontrado"
         exit 1
