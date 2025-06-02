@@ -53,17 +53,24 @@ typedef enum
 typedef struct ASTNode
 {
     ASTNodeType tipo;
-    char *valor_str;
-    int valor_int;
-    float valor_float;
-    char valor_char;
     struct ASTNode *filho1;
     struct ASTNode *filho2;
     struct ASTNode *filho3;
     struct ASTNode *filho4;
     struct ASTNode *prox;
+
+    // Valores possíveis
+    int valor_int;
+    float valor_float;
+    char valor_char;
+    char *valor_str;
+    char *valor_str2; // Para nomes adicionais (ex: nome de tipo personalizado)
+
+    // Informação de linha para mensagens de erro
+    int linha;
 } ASTNode;
 
+// Funções para criar nós da AST
 ASTNode *criarNo(ASTNodeType tipo, const char *valor_str);
 ASTNode *criarNoInt(int valor);
 ASTNode *criarNoFloat(float valor);
@@ -94,11 +101,11 @@ ASTNode *criarNoInit(ASTNode *expr, ASTNode *lista);
 ASTNode *criarNoUnion(const char *tipo, const char *id);
 ASTNode *criarNoEnum(const char *id);
 
+// Funções para manipular a AST
 ASTNode *concatenarStmt(ASTNode *lista, ASTNode *no);
 ASTNode *concatenarParam(ASTNode *lista, ASTNode *no);
 ASTNode *concatenarArg(ASTNode *lista, ASTNode *no);
-
 void imprimirAST(ASTNode *no);
 void liberarAST(ASTNode *no);
 
-#endif
+#endif // AST_H
