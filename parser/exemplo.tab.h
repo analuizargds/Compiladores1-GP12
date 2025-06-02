@@ -63,52 +63,61 @@ extern int yydebug;
     BREAK = 264,                   /* BREAK  */
     WHILE = 265,                   /* WHILE  */
     RETURN = 266,                  /* RETURN  */
-    ID = 267,                      /* ID  */
-    EQ = 268,                      /* EQ  */
-    ASSIGN = 269,                  /* ASSIGN  */
-    PLUS = 270,                    /* PLUS  */
-    MINUS = 271,                   /* MINUS  */
-    MULT = 272,                    /* MULT  */
-    DIV = 273,                     /* DIV  */
-    GE = 274,                      /* GE  */
-    LE = 275,                      /* LE  */
-    GT = 276,                      /* GT  */
-    LT = 277,                      /* LT  */
-    COLON = 278,                   /* COLON  */
-    SEMICOLON = 279,               /* SEMICOLON  */
-    LBRACE = 280,                  /* LBRACE  */
-    RBRACE = 281,                  /* RBRACE  */
-    LPAREN = 282,                  /* LPAREN  */
-    RPAREN = 283,                  /* RPAREN  */
-    STRING = 284,                  /* STRING  */
-    COMMA = 285,                   /* COMMA  */
-    DOT = 286,                     /* DOT  */
-    INT = 287,                     /* INT  */
-    FLOAT = 288,                   /* FLOAT  */
-    CHAR = 289,                    /* CHAR  */
-    VOID = 290,                    /* VOID  */
-    DOUBLE = 291,                  /* DOUBLE  */
-    CHAR_LITERAL = 292,            /* CHAR_LITERAL  */
-    STRUCT = 293,                  /* STRUCT  */
-    UNION = 294,                   /* UNION  */
-    ENUM = 295,                    /* ENUM  */
-    TYPEDEF = 296,                 /* TYPEDEF  */
-    HEX = 297,                     /* HEX  */
-    CARACT = 298,                  /* CARACT  */
-    AND = 299,                     /* AND  */
-    OR = 300,                      /* OR  */
-    NOT = 301,                     /* NOT  */
-    BITAND = 302,                  /* BITAND  */
-    BITOR = 303,                   /* BITOR  */
-    BITXOR = 304,                  /* BITXOR  */
-    BITNOT = 305,                  /* BITNOT  */
-    SHIFTLEFT = 306,               /* SHIFTLEFT  */
-    SHIFTRIGHT = 307,              /* SHIFTRIGHT  */
-    RESTO = 308,                   /* RESTO  */
-    INCREMENTO = 309,              /* INCREMENTO  */
-    DECREMENTO = 310,              /* DECREMENTO  */
-    LOWER_THAN_ELSE = 311,         /* LOWER_THAN_ELSE  */
-    IFX = 312                      /* IFX  */
+    DO = 267,                      /* DO  */
+    FOR = 268,                     /* FOR  */
+    CONTINUE = 269,                /* CONTINUE  */
+    ID = 270,                      /* ID  */
+    GE = 271,                      /* GE  */
+    LE = 272,                      /* LE  */
+    GT = 273,                      /* GT  */
+    LT = 274,                      /* LT  */
+    NE = 275,                      /* NE  */
+    EQ = 276,                      /* EQ  */
+    ASSIGN = 277,                  /* ASSIGN  */
+    PLUS = 278,                    /* PLUS  */
+    MINUS = 279,                   /* MINUS  */
+    MULT = 280,                    /* MULT  */
+    DIV = 281,                     /* DIV  */
+    MOD = 282,                     /* MOD  */
+    COLON = 283,                   /* COLON  */
+    SEMICOLON = 284,               /* SEMICOLON  */
+    LBRACE = 285,                  /* LBRACE  */
+    RBRACE = 286,                  /* RBRACE  */
+    LPAREN = 287,                  /* LPAREN  */
+    RPAREN = 288,                  /* RPAREN  */
+    STRING = 289,                  /* STRING  */
+    COMMA = 290,                   /* COMMA  */
+    DOT = 291,                     /* DOT  */
+    INT = 292,                     /* INT  */
+    FLOAT = 293,                   /* FLOAT  */
+    CHAR = 294,                    /* CHAR  */
+    VOID = 295,                    /* VOID  */
+    DOUBLE = 296,                  /* DOUBLE  */
+    CHAR_LITERAL = 297,            /* CHAR_LITERAL  */
+    STRUCT = 298,                  /* STRUCT  */
+    UNION = 299,                   /* UNION  */
+    ENUM = 300,                    /* ENUM  */
+    TYPEDEF = 301,                 /* TYPEDEF  */
+    HEX = 302,                     /* HEX  */
+    CARACT = 303,                  /* CARACT  */
+    INCREMENT = 304,               /* INCREMENT  */
+    DECREMENT = 305,               /* DECREMENT  */
+    PLUS_ASSIGN = 306,             /* PLUS_ASSIGN  */
+    MINUS_ASSIGN = 307,            /* MINUS_ASSIGN  */
+    MULT_ASSIGN = 308,             /* MULT_ASSIGN  */
+    DIV_ASSIGN = 309,              /* DIV_ASSIGN  */
+    AND = 310,                     /* AND  */
+    OR = 311,                      /* OR  */
+    NOT = 312,                     /* NOT  */
+    BITAND = 313,                  /* BITAND  */
+    BITOR = 314,                   /* BITOR  */
+    BITXOR = 315,                  /* BITXOR  */
+    BITNOT = 316,                  /* BITNOT  */
+    SHIFTLEFT = 317,               /* SHIFTLEFT  */
+    SHIFTRIGHT = 318,              /* SHIFTRIGHT  */
+    UMINUS = 319,                  /* UMINUS  */
+    UPLUS = 320,                   /* UPLUS  */
+    LOWER_THAN_ELSE = 321          /* LOWER_THAN_ELSE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -117,14 +126,14 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 45 "exemplo.y"
+#line 46 "exemplo.y"
 
     int intValue;
     float floatValue;
     char* strValue;
     char charValue;
 
-#line 128 "exemplo.tab.h"
+#line 137 "exemplo.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
