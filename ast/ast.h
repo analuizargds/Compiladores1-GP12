@@ -37,6 +37,16 @@ typedef enum
     AST_CALL,
     AST_ARG_LIST,
 
+    AST_CASE,
+    AST_DEFAULT,
+
+    AST_INIT,
+    AST_STRUCT,
+    AST_UNION,
+    AST_ENUM,
+    AST_TYPEDEF,
+    AST_MEMBER_ACCESS,
+
     AST_EMPTY,
 } ASTNodeType;
 
@@ -65,7 +75,6 @@ ASTNode *criarNoType(const char *tipo);
 ASTNode *criarNoBinOp(char op, ASTNode *esq, ASTNode *dir);
 ASTNode *criarNoUnaryOp(char op, ASTNode *expr);
 ASTNode *criarNoAssign(char op, ASTNode *var, ASTNode *expr);
-
 ASTNode *criarNoIf(ASTNode *cond, ASTNode *thenBranch, ASTNode *elseBranch);
 ASTNode *criarNoWhile(ASTNode *cond, ASTNode *body);
 ASTNode *criarNoDoWhile(ASTNode *cond, ASTNode *body);
@@ -73,7 +82,6 @@ ASTNode *criarNoFor(ASTNode *init, ASTNode *cond, ASTNode *increment, ASTNode *b
 ASTNode *criarNoReturn(ASTNode *expr);
 ASTNode *criarNoBreak(void);
 ASTNode *criarNoContinue(void);
-
 ASTNode *criarNoVarDecl(const char *id, ASTNode *tipo);
 ASTNode *criarNoFuncDecl(const char *id, ASTNode *tipo, ASTNode *params, ASTNode *body);
 ASTNode *criarNoParam(const char *id, ASTNode *tipo);
@@ -81,6 +89,10 @@ ASTNode *criarNoBlock(ASTNode *stmtList);
 ASTNode *criarNoCall(const char *id, ASTNode *args);
 
 ASTNode *criarNoSwitch(ASTNode *expr, ASTNode *cases);
+ASTNode *criarNoCase(ASTNode *expr, ASTNode *stmts);
+ASTNode *criarNoInit(ASTNode *expr, ASTNode *lista);
+ASTNode *criarNoUnion(const char *tipo, const char *id);
+ASTNode *criarNoEnum(const char *id);
 
 ASTNode *concatenarStmt(ASTNode *lista, ASTNode *no);
 ASTNode *concatenarParam(ASTNode *lista, ASTNode *no);

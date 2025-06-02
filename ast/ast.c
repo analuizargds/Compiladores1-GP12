@@ -192,14 +192,6 @@ ASTNode *criarNoCall(const char *id, ASTNode *args)
     return no;
 }
 
-ASTNode *criarNoSwitch(ASTNode *expr, ASTNode *cases)
-{
-    ASTNode *no = criarNo(AST_SWITCH, NULL);
-    no->filho1 = expr;
-    no->filho2 = cases;
-    return no;
-}
-
 ASTNode *concatenarStmt(ASTNode *lista, ASTNode *no)
 {
     if (!lista)
@@ -274,4 +266,40 @@ void liberarAST(ASTNode *no)
     if (no->valor_str)
         free(no->valor_str);
     free(no);
+}
+
+ASTNode *criarNoSwitch(ASTNode *expr, ASTNode *cases)
+{
+    ASTNode *no = criarNo(AST_SWITCH, NULL);
+    no->filho1 = expr;
+    no->filho2 = cases;
+    return no;
+}
+
+ASTNode *criarNoCase(ASTNode *expr, ASTNode *stmts)
+{
+    ASTNode *no = criarNo(expr ? AST_CASE : AST_DEFAULT, NULL);
+    no->filho1 = expr;
+    no->filho2 = stmts;
+    return no;
+}
+
+ASTNode *criarNoInit(ASTNode *expr, ASTNode *lista)
+{
+    ASTNode *no = criarNo(AST_INIT, NULL);
+    no->filho1 = expr;
+    no->prox = lista;
+    return no;
+}
+
+ASTNode *criarNoUnion(const char *tipo, const char *id)
+{
+    ASTNode *no = criarNo(AST_UNION, id);
+    no->valor_str = strdup(tipo); // "struct" ou "union"
+    return no;
+}
+
+ASTNode *criarNoEnum(const char *id)
+{
+    return criarNo(AST_ENUM, id);
 }

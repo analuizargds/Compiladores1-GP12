@@ -69,6 +69,8 @@ ASTNode* root;
 %type <node> case_list case_stmt comandos_break comandos_opt
 %type <node> declaracao_tipo struct_declaracao union_declaracao enum_declaracao typedef_declaracao
 %type <node> tipo expr_stmt lista_identificadores
+%type <node> inicializador lista_inicializadores
+%type <node> for_parer for_init
 
 %%
 
@@ -105,6 +107,17 @@ for_stmt:
     }
 ;
 
+for_init:
+    expr { $$ = $1; }
+    | declaracao_variavel { $$ = $1; }
+    | /* vazio */ { $$ = NULL; }
+    ;
+
+for_parer:
+    expr { $$ = $1; }
+    | /* vazio */ { $$ = NULL; }
+    ;
+
 do_stmt:
     DO stmt WHILE LPAREN expr RPAREN SEMICOLON { $$ = criarNoDoWhile($5, $2); }
     ;
@@ -113,21 +126,18 @@ continue_stmt:
     CONTINUE SEMICOLON { $$ = criarNoContinue(); }
     ;
 
-
 case_list:
     case_list case_stmt { $$ = concatenarStmt($1, $2); }
     | case_stmt { $$ = $1; }
     ;
 
 case_stmt:
-       CASE expr COLON comandos_break { $$ = $4; }
-       | DEFAULT COLON comandos_break { $$ = $3; }
-       ;
-
+    CASE expr COLON comandos_break { $$ = criarNoCase($2, $4); }
+    | DEFAULT COLON comandos_break { $$ = criarNoCase(NULL, $3); }
+    ;
 
 comandos_break:
     comandos_opt BREAK SEMICOLON { $$ = concatenarStmt($1, criarNoBreak()); }
-    ;
 
 comandos_opt:
     /* vazio */ { $$ = NULL; }
@@ -144,9 +154,9 @@ tipo:
     | CHAR { $$ = criarNoType("char"); }
     | VOID { $$ = criarNoType("void"); }
     | DOUBLE { $$ = criarNoType("double"); }
-    | STRUCT ID { $$ = criarNoType($2); }
-    | UNION ID { $$ = criarNoType($2); }
-    | ENUM ID { $$ = criarNoType($2); }
+    | STRUCT ID { $$ = criarNoUnion("struct", $2); }
+    | UNION ID { $$ = criarNoUnion("union", $2); }
+    | ENUM ID { $$ = criarNoEnum($2); }
     ;
 
 lista_variaveis:
@@ -157,7 +167,8 @@ lista_variaveis:
 variavel:
     ID { $$ = criarNoVar($1); }
     | ID ASSIGN expr { $$ = criarNoAssign('=', criarNoVar($1), $3); }
-;
+    | ID ASSIGN inicializador { $$ = criarNoAssign('=', criarNoVar($1), $3); }
+    ;
 
 fun_declaracao:
     tipo ID LPAREN parametros RPAREN composto_stmt { $$ = criarNoFuncDecl($2, $1, $4, $6); }
@@ -177,6 +188,16 @@ param:
     tipo ID { $$ = criarNoParam($2, $1); }
     ;
 
+inicializador:
+    LBRACE lista_inicializadores RBRACE { $$ = $2; }
+    ;
+
+lista_inicializadores:
+    expr { $$ = criarNoInit($1, NULL); }
+    | lista_inicializadores COMMA expr { $$ = criarNoInit($3, $1); }
+    | /* vazio */ { $$ = NULL; }
+    ;
+
 stmt:
     expr_stmt { $$ = $1; }
     | composto_stmt { $$ = $1; }
@@ -193,11 +214,11 @@ expr_stmt:
     expr SEMICOLON { $$ = $1; }
     | SEMICOLON { $$ = NULL; }
     ;
-    
+
 composto_stmt:
-    LBRACE lista_declaracoes RBRACE { $$ = criarNoBlock($2); }
-    | LBRACE RBRACE { $$ = criarNoBlock(NULL); }
-;
+    LBRACE lista_declaracoes RBRACE { $$ = $2; }
+    | LBRACE RBRACE { $$ = NULL; }
+    ;
 
 if_stmt:
     IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE { $$ = criarNoIf($3, $5, NULL); }
@@ -220,15 +241,15 @@ expr:
 atrib_expr:
     or_expr { $$ = $1; }
     | var ASSIGN atrib_expr { $$ = criarNoAssign('=', $1, $3); }
-    | var PLUS_ASSIGN atrib_expr { $$ = criarNoAssign('+', $1, $3); }
-    | var MINUS_ASSIGN atrib_expr { $$ = criarNoAssign('-', $1, $3); }
-    | var MULT_ASSIGN atrib_expr { $$ = criarNoAssign('*', $1, $3); }
-    | var DIV_ASSIGN atrib_expr { $$ = criarNoAssign('/', $1, $3); }
+    | var PLUS_ASSIGN atrib_expr { $$ = criarNoBinOp('+', $1, $3); }
+    | var MINUS_ASSIGN atrib_expr { $$ = criarNoBinOp('-', $1, $3); }
+    | var MULT_ASSIGN atrib_expr { $$ = criarNoBinOp('*', $1, $3); }
+    | var DIV_ASSIGN atrib_expr { $$ = criarNoBinOp('/', $1, $3); }
     ;
 
 or_expr:
     and_expr { $$ = $1; }
-    | or_expr OR and_expr { $$ = criarNoBinOp('|', $1, $3); }
+    | or_expr OR and_expr { $$ = criarNoBinOp('|', $1, $3);}
     ;
 
 and_expr:
@@ -238,7 +259,7 @@ and_expr:
 
 bitor_expr:
     bitxor_expr { $$ = $1; }
-    | bitor_expr BITOR bitxor_expr { $$ = criarNoBinOp('!', $1, $3); }
+    | bitor_expr BITOR bitxor_expr { $$ = criarNoBinOp('|', $1, $3);}
     ;
 
 bitxor_expr:
@@ -248,13 +269,13 @@ bitxor_expr:
 
 bitand_expr:
     equal_expr { $$ = $1; }
-    | bitand_expr BITAND equal_expr { $$ = criarNoBinOp('#', $1, $3); }
+    | bitand_expr BITAND equal_expr { $$ = criarNoBinOp('&', $1, $3); }
     ;
 
 equal_expr:
     relacao_expr { $$ = $1; }
-    | equal_expr EQ relacao_expr { $$ = criarNoBinOp('=', $1, $3); }
-    | equal_expr NE relacao_expr { $$ = criarNoBinOp('n', $1, $3); }
+    | equal_expr EQ relacao_expr { $$ = criarNoBinOp('=', $1, $3);}
+    | equal_expr NE relacao_expr { $$ = criarNoBinOp('!', $1, $3);}
     ;
 
 relacao_expr:
@@ -264,6 +285,7 @@ relacao_expr:
     | relacao_expr GE shift_expr { $$ = criarNoBinOp('g', $1, $3); }
     | relacao_expr LE shift_expr { $$ = criarNoBinOp('l', $1, $3); }
     ;
+
 
 shift_expr:
     add_expr { $$ = $1; }
@@ -278,18 +300,20 @@ add_expr:
        ;
 
 mult_expr:
-    unary_expr
+    unary_expr { $$ = $1; }
     | mult_expr MULT unary_expr { $$ = criarNoBinOp('*', $1, $3); }
     | mult_expr DIV unary_expr { $$ = criarNoBinOp('/', $1, $3); }
     | mult_expr MOD unary_expr { $$ = criarNoBinOp('%', $1, $3); }
     ;
 
 unary_expr:
-    MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
+    fator { $$ = $1; }
+    | INCREMENT var { $$ = criarNoUnaryOp('+', $2); }
+    | DECREMENT var { $$ = criarNoUnaryOp('-', $2); }
+    | MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp('-', $2); }
     | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp('+', $2); }
     | NOT unary_expr { $$ = criarNoUnaryOp('!', $2); }
     | BITNOT unary_expr { $$ = criarNoUnaryOp('~', $2); }
-    | fator { $$ = $1; }
 ;
 
 fator:
@@ -301,12 +325,14 @@ fator:
     | var { $$ = $1; }
     | chamada { $$ = $1; }
     | LPAREN expr RPAREN { $$ = $2; }
+    | var INCREMENT { $$ = criarNoUnaryOp('+', $1); }
+    | var DECREMENT { $$ = criarNoUnaryOp('-', $1); }
 ;
 
 var:
-       ID { $$ = criarNoVar($1); }
-       | var DOT ID { $$ = criarNoVar($3); }
-       ;
+    ID { $$ = criarNoVar($1); }
+    | var DOT ID { $$ = criarNoVar($3); }
+;
 
 chamada:
     ID LPAREN argumentos RPAREN { $$ = criarNoCall($1, $3); }
@@ -322,29 +348,25 @@ lista_args:
     | expr { $$ = $1; }
 ;
 
-struct_declaracao:
-    STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoVar($2); }
-       ;
-
-union_declaracao:
-    UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoVar($2); }
-       ;
-
-enum_declaracao:
-    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON { $$ = criarNoVar($2); }
-       ;
-
 typedef_declaracao:
     TYPEDEF tipo ID SEMICOLON { $$ = criarNoVar($3); }
-       ;
+;
 
 lista_identificadores:
     ID { $$ = criarNoVar($1); }
     | lista_identificadores COMMA ID { $$ = concatenarStmt($1, criarNoVar($3)); }
     ;
 
-%%
+struct_declaracao:
+    STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoUnion("struct", $2); }
+    ;
 
-void yyerror(const char *s) {
-    fprintf(stderr, "Erro sintático: %s\n", s);
-}
+union_declaracao:
+    UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoUnion("union", $2); }
+    ;
+
+enum_declaracao:
+    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON { $$ = criarNoEnum($2); }
+    ;
+
+%%
