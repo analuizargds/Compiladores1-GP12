@@ -140,6 +140,7 @@ typedef struct CFGNode {
     CFGEdge *edges; // Lista de arestas de saída
     AST *ast_node_ref; // Referência ao nó da AST que gerou este CFGNode
     struct CFGNode *list_next; // Próximo nó na lista global de todos os nós CFG
+    int cluster_id; // ID do cluster Graphviz ao qual este nó pertence (-1 se não pertencer a nenhum)
 } CFGNode;
 
 // Estrutura para uma aresta no CFG
@@ -161,6 +162,7 @@ void add_cfg_edge(CFGNode *from, CFGNode *to, const char *label);
 void liberarCFG(void);
 void cfg_to_dot(AST *node);
 CFGFragment build_cfg_from_ast(AST *node);
+CFGFragment build_cfg_from_ast_recursive(AST *node, int current_cluster_id); // Forward declaration
 
 #endif // AST_H
 
