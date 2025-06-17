@@ -115,9 +115,14 @@ extern int yydebug;
     BITNOT = 316,                  /* BITNOT  */
     SHIFTLEFT = 317,               /* SHIFTLEFT  */
     SHIFTRIGHT = 318,              /* SHIFTRIGHT  */
-    UMINUS = 319,                  /* UMINUS  */
-    UPLUS = 320,                   /* UPLUS  */
-    LOWER_THAN_ELSE = 321          /* LOWER_THAN_ELSE  */
+    LBRACKET = 319,                /* LBRACKET  */
+    RBRACKET = 320,                /* RBRACKET  */
+    INCLUDE = 321,                 /* INCLUDE  */
+    POINTER = 322,                 /* POINTER  */
+    AMPERSAND = 323,               /* AMPERSAND  */
+    UMINUS = 324,                  /* UMINUS  */
+    UPLUS = 325,                   /* UPLUS  */
+    LOWER_THAN_ELSE = 326          /* LOWER_THAN_ELSE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -126,14 +131,15 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 46 "exemplo.y"
+#line 57 "exemplo.y"
 
     int intValue;
     float floatValue;
     char* strValue;
     char charValue;
+    struct ASTNode* node;
 
-#line 137 "exemplo.tab.h"
+#line 143 "exemplo.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

@@ -3,303 +3,420 @@
 #include <string.h>
 #include "ast.h"
 
-ASTNode *criarNo(ASTNodeType tipo, const char *valor_str)
-{
-    ASTNode *no = (ASTNode *)malloc(sizeof(ASTNode));
-    no->tipo = tipo;
-    no->valor_str = valor_str ? strdup(valor_str) : NULL;
-    no->valor_int = 0;
-    no->valor_float = 0;
-    no->valor_char = 0;
-    no->filho1 = no->filho2 = no->filho3 = no->filho4 = NULL;
-    no->prox = NULL;
-    return no;
+// Variável global para contar os nós e gerar IDs únicos no DOT
+static int node_counter = 0;
+
+// Função auxiliar para gerar o código DOT de um nó da AST
+void ast_to_dot_node(AST *node, FILE *outfile) {
+    if (node == NULL) {
+        return;
+    }
+
+    int current_node_id = node_counter++;
+
+    fprintf(outfile, "  node%d [label=\"%s\"];\n", current_node_id, "Nó AST"); // Placeholder label
+
+    // Recursivamente gerar DOT para os filhos
+    if (node->filho1 != NULL) {
+        fprintf(outfile, "  node%d -> node%d;\n", current_node_id, node_counter);
+        ast_to_dot_node(node->filho1, outfile);
+    }
+    if (node->filho2 != NULL) {
+        fprintf(outfile, "  node%d -> node%d;\n", current_node_id, node_counter);
+        ast_to_dot_node(node->filho2, outfile);
+    }
+    if (node->filho3 != NULL) {
+        fprintf(outfile, "  node%d -> node%d;\n", current_node_id, node_counter);
+        ast_to_dot_node(node->filho3, outfile);
+    }
+    if (node->filho4 != NULL) {
+        fprintf(outfile, "  node%d -> node%d;\n", current_node_id, node_counter);
+        ast_to_dot_node(node->filho4, outfile);
+    }
+    if (node->prox != NULL) {
+        fprintf(outfile, "  node%d -> node%d [style=dotted];\n", current_node_id, node_counter);
+        ast_to_dot_node(node->prox, outfile);
+    }
 }
 
-ASTNode *criarNoInt(int valor)
-{
-    ASTNode *no = criarNo(AST_LITERAL_INT, NULL);
-    no->valor_int = valor;
-    return no;
+// Funções para criar nós da AST
+ASTNode *criarNo(ASTNodeType tipo, const char *valor_str) {
+    ASTNode *novoNo = (ASTNode *)malloc(sizeof(ASTNode));
+    if (novoNo == NULL) {
+        perror("Erro ao alocar memória para ASTNode");
+        exit(EXIT_FAILURE);
+    }
+    novoNo->tipo = tipo;
+    novoNo->filho1 = NULL;
+    novoNo->filho2 = NULL;
+    novoNo->filho3 = NULL;
+    novoNo->filho4 = NULL;
+    novoNo->prox = NULL;
+    novoNo->valor_int = 0;
+    novoNo->valor_float = 0.0f;
+    novoNo->valor_char = '\0';
+    novoNo->valor_str = (valor_str != NULL) ? strdup(valor_str) : NULL;
+    novoNo->valor_str2 = NULL;
+    novoNo->linha = 0; // Será preenchido pelo parser
+    return novoNo;
 }
 
-ASTNode *criarNoFloat(float valor)
-{
-    ASTNode *no = criarNo(AST_LITERAL_FLOAT, NULL);
-    no->valor_float = valor;
-    return no;
+ASTNode *criarNoInt(int valor) {
+    ASTNode *novoNo = criarNo(AST_LITERAL_INT, NULL);
+    novoNo->valor_int = valor;
+    return novoNo;
 }
 
-ASTNode *criarNoString(const char *str)
-{
+ASTNode *criarNoFloat(float valor) {
+    ASTNode *novoNo = criarNo(AST_LITERAL_FLOAT, NULL);
+    novoNo->valor_float = valor;
+    return novoNo;
+}
+
+ASTNode *criarNoString(const char *str) {
     return criarNo(AST_LITERAL_STRING, str);
 }
 
-ASTNode *criarNoChar(char c)
-{
-    ASTNode *no = criarNo(AST_LITERAL_CHAR, NULL);
-    no->valor_char = c;
-    return no;
+ASTNode *criarNoChar(char c) {
+    ASTNode *novoNo = criarNo(AST_LITERAL_CHAR, NULL);
+    novoNo->valor_char = c;
+    return novoNo;
 }
 
-ASTNode *criarNoHex(const char *str)
-{
+ASTNode *criarNoHex(const char *str) {
     return criarNo(AST_LITERAL_HEX, str);
 }
 
-ASTNode *criarNoVar(const char *id)
-{
+ASTNode *criarNoVar(const char *id) {
     return criarNo(AST_VAR, id);
 }
 
-ASTNode *criarNoType(const char *tipo)
-{
+ASTNode *criarNoType(const char *tipo) {
     return criarNo(AST_TYPE, tipo);
 }
 
-ASTNode *criarNoBinOp(const char *op, ASTNode *esq, ASTNode *dir)
-{
-    ASTNode *no = criarNo(AST_BINARY_OP, NULL);
-    no->valor_str = strdup(op);
-    no->filho1 = esq;
-    no->filho2 = dir;
-    return no;
+ASTNode *criarNoBinOp(const char *op, ASTNode *esq, ASTNode *dir) {
+    ASTNode *novoNo = criarNo(AST_BINARY_OP, op);
+    novoNo->filho1 = esq;
+    novoNo->filho2 = dir;
+    return novoNo;
 }
 
-ASTNode *criarNoUnaryOp(char *op, ASTNode *expr)
-{
-    ASTNode *no = criarNo(AST_UNARY_OP, NULL);
-    no->valor_str = strdup(op);
-    no->filho1 = expr;
-    return no;
+ASTNode *criarNoUnaryOp(char *op, ASTNode *expr) {
+    ASTNode *novoNo = criarNo(AST_UNARY_OP, op);
+    novoNo->filho1 = expr;
+    return novoNo;
 }
 
-ASTNode *criarNoAssign(char op, ASTNode *var, ASTNode *expr)
-{
-    ASTNodeType tipo;
-    switch (op)
-    {
-    case '=':
-        tipo = AST_ASSIGN;
-        break;
-    case '+':
-        tipo = AST_PLUS_ASSIGN;
-        break;
-    case '-':
-        tipo = AST_MINUS_ASSIGN;
-        break;
-    case '*':
-        tipo = AST_MULT_ASSIGN;
-        break;
-    case '/':
-        tipo = AST_DIV_ASSIGN;
-        break;
-    default:
-        tipo = AST_ASSIGN;
-    }
-    ASTNode *no = criarNo(tipo, NULL);
-    no->filho1 = var;
-    no->filho2 = expr;
-    return no;
+ASTNode *criarNoAssign(char op, ASTNode *var, ASTNode *expr) {
+    ASTNode *novoNo = criarNo(AST_ASSIGN, NULL);
+    novoNo->valor_char = op;
+    novoNo->filho1 = var;
+    novoNo->filho2 = expr;
+    return novoNo;
 }
 
-ASTNode *criarNoIf(ASTNode *cond, ASTNode *thenBranch, ASTNode *elseBranch)
-{
-    ASTNode *no = criarNo(elseBranch ? AST_IF_ELSE : AST_IF, NULL);
-    no->filho1 = cond;
-    no->filho2 = thenBranch;
-    no->filho3 = elseBranch;
-    return no;
+ASTNode *criarNoIf(ASTNode *cond, ASTNode *thenBranch, ASTNode *elseBranch) {
+    ASTNode *novoNo = criarNo(AST_IF, NULL);
+    novoNo->filho1 = cond;
+    novoNo->filho2 = thenBranch;
+    novoNo->filho3 = elseBranch;
+    return novoNo;
 }
 
-ASTNode *criarNoWhile(ASTNode *cond, ASTNode *body)
-{
-    ASTNode *no = criarNo(AST_WHILE, NULL);
-    no->filho1 = cond;
-    no->filho2 = body;
-    return no;
+ASTNode *criarNoWhile(ASTNode *cond, ASTNode *body) {
+    ASTNode *novoNo = criarNo(AST_WHILE, NULL);
+    novoNo->filho1 = cond;
+    novoNo->filho2 = body;
+    return novoNo;
 }
 
-ASTNode *criarNoDoWhile(ASTNode *cond, ASTNode *body)
-{
-    ASTNode *no = criarNo(AST_DO_WHILE, NULL);
-    no->filho1 = body;
-    no->filho2 = cond;
-    return no;
+ASTNode *criarNoDoWhile(ASTNode *cond, ASTNode *body) {
+    ASTNode *novoNo = criarNo(AST_DO_WHILE, NULL);
+    novoNo->filho1 = cond;
+    novoNo->filho2 = body;
+    return novoNo;
 }
 
-ASTNode *criarNoFor(ASTNode *init, ASTNode *cond, ASTNode *increment, ASTNode *body)
-{
-    ASTNode *no = criarNo(AST_FOR, NULL);
-    no->filho1 = init;
-    no->filho2 = cond;
-    no->filho3 = increment;
-    no->filho4 = body;
-    return no;
+ASTNode *criarNoFor(ASTNode *init, ASTNode *cond, ASTNode *increment, ASTNode *body) {
+    ASTNode *novoNo = criarNo(AST_FOR, NULL);
+    novoNo->filho1 = init;
+    novoNo->filho2 = cond;
+    novoNo->filho3 = increment;
+    novoNo->filho4 = body;
+    return novoNo;
 }
 
-ASTNode *criarNoReturn(ASTNode *expr)
-{
-    ASTNode *no = criarNo(AST_RETURN, NULL);
-    no->filho1 = expr;
-    return no;
+ASTNode *criarNoReturn(ASTNode *expr) {
+    ASTNode *novoNo = criarNo(AST_RETURN, NULL);
+    novoNo->filho1 = expr;
+    return novoNo;
 }
 
-ASTNode *criarNoBreak(void)
-{
+ASTNode *criarNoBreak(void) {
     return criarNo(AST_BREAK, NULL);
 }
 
-ASTNode *criarNoContinue(void)
-{
+ASTNode *criarNoContinue(void) {
     return criarNo(AST_CONTINUE, NULL);
 }
 
-ASTNode *criarNoVarDecl(const char *id, ASTNode *tipo)
-{
-    ASTNode *no = criarNo(AST_VAR_DECL, id);
-    no->filho1 = tipo;
-    return no;
+ASTNode *criarNoVarDecl(const char *id, ASTNode *tipo) {
+    ASTNode *novoNo = criarNo(AST_VAR_DECL, id);
+    novoNo->filho1 = tipo;
+    return novoNo;
 }
 
-ASTNode *criarNoFuncDecl(const char *id, ASTNode *tipo, ASTNode *params, ASTNode *body)
-{
-    ASTNode *no = criarNo(AST_FUNC_DECL, id);
-    no->filho1 = tipo;
-    no->filho2 = params;
-    no->filho3 = body;
-    return no;
+ASTNode *criarNoFuncDecl(const char *id, ASTNode *tipo, ASTNode *params, ASTNode *body) {
+    ASTNode *novoNo = criarNo(AST_FUNC_DECL, id);
+    novoNo->filho1 = tipo;
+    novoNo->filho2 = params;
+    novoNo->filho3 = body;
+    return novoNo;
 }
 
-ASTNode *criarNoParam(const char *id, ASTNode *tipo)
-{
-    ASTNode *no = criarNo(AST_PARAM, id);
-    no->filho1 = tipo;
-    return no;
+ASTNode *criarNoParam(const char *id, ASTNode *tipo) {
+    ASTNode *novoNo = criarNo(AST_PARAM, id);
+    novoNo->filho1 = tipo;
+    return novoNo;
 }
 
-ASTNode *criarNoBlock(ASTNode *stmtList)
-{
-    ASTNode *no = criarNo(AST_BLOCK, NULL);
-    no->filho1 = stmtList;
-    return no;
+ASTNode *criarNoBlock(ASTNode *stmtList) {
+    ASTNode *novoNo = criarNo(AST_BLOCK, NULL);
+    novoNo->filho1 = stmtList;
+    return novoNo;
 }
 
-ASTNode *criarNoCall(const char *id, ASTNode *args)
-{
-    ASTNode *no = criarNo(AST_CALL, id);
-    no->filho1 = args;
-    return no;
+ASTNode *criarNoCall(const char *id, ASTNode *args) {
+    ASTNode *novoNo = criarNo(AST_CALL, id);
+    novoNo->filho1 = args;
+    return novoNo;
 }
 
-ASTNode *concatenarStmt(ASTNode *lista, ASTNode *no)
-{
-    if (!lista)
+ASTNode *criarNoSwitch(ASTNode *expr, ASTNode *cases) {
+    ASTNode *novoNo = criarNo(AST_SWITCH, NULL);
+    novoNo->filho1 = expr;
+    novoNo->filho2 = cases;
+    return novoNo;
+}
+
+ASTNode *criarNoCase(ASTNode *expr, ASTNode *stmts) {
+    ASTNode *novoNo = criarNo(AST_CASE, NULL);
+    novoNo->filho1 = expr;
+    novoNo->filho2 = stmts;
+    return novoNo;
+}
+
+ASTNode *criarNoInit(ASTNode *expr, ASTNode *lista) {
+    ASTNode *novoNo = criarNo(AST_INIT, NULL);
+    novoNo->filho1 = expr;
+    novoNo->filho2 = lista;
+    return novoNo;
+}
+
+ASTNode *criarNoUnion(const char *tipo, const char *id) {
+    ASTNode *novoNo = criarNo(AST_UNION, id);
+    novoNo->valor_str2 = strdup(tipo);
+    return novoNo;
+}
+
+ASTNode *criarNoEnum(const char *id) {
+    return criarNo(AST_ENUM, id);
+}
+
+// Funções para manipular a AST
+ASTNode *concatenarStmt(ASTNode *lista, ASTNode *no) {
+    if (lista == NULL) {
         return no;
-    ASTNode *tmp = lista;
-    while (tmp->prox)
-        tmp = tmp->prox;
-    tmp->prox = no;
-    return lista;
+    } else {
+        ASTNode *temp = lista;
+        while (temp->prox != NULL) {
+            temp = temp->prox;
+        }
+        temp->prox = no;
+        return lista;
+    }
 }
 
-ASTNode *concatenarParam(ASTNode *lista, ASTNode *no)
-{
-    return concatenarStmt(lista, no);
+ASTNode *concatenarParam(ASTNode *lista, ASTNode *no) {
+    if (lista == NULL) {
+        return no;
+    } else {
+        ASTNode *temp = lista;
+        while (temp->prox != NULL) {
+            temp = temp->prox;
+        }
+        temp->prox = no;
+        return lista;
+    }
 }
 
-ASTNode *concatenarArg(ASTNode *lista, ASTNode *no)
-{
-    return concatenarStmt(lista, no);
+ASTNode *concatenarArg(ASTNode *lista, ASTNode *no) {
+    if (lista == NULL) {
+        return no;
+    } else {
+        ASTNode *temp = lista;
+        while (temp->prox != NULL) {
+            temp = temp->prox;
+        }
+        temp->prox = no;
+        return lista;
+    }
 }
 
-void imprimirAST(ASTNode *no)
-{
-    if (!no)
+void liberarAST(ASTNode *no) {
+    if (no == NULL) {
         return;
-    printf("(%d", no->tipo);
-    if (no->valor_str)
-        printf(" \"%s\"", no->valor_str);
-    if (no->valor_int)
-        printf(" %d", no->valor_int);
-    if (no->valor_float)
-        printf(" %.2f", no->valor_float);
-    if (no->valor_char)
-        printf(" '%c'", no->valor_char);
-    if (no->filho1)
-    {
-        printf(" ");
-        imprimirAST(no->filho1);
     }
-    if (no->filho2)
-    {
-        printf(" ");
-        imprimirAST(no->filho2);
-    }
-    if (no->filho3)
-    {
-        printf(" ");
-        imprimirAST(no->filho3);
-    }
-    if (no->filho4)
-    {
-        printf(" ");
-        imprimirAST(no->filho4);
-    }
-    printf(")");
-    if (no->prox)
-    {
-        printf("\n");
-        imprimirAST(no->prox);
-    }
-}
-
-void liberarAST(ASTNode *no)
-{
-    if (!no)
-        return;
     liberarAST(no->filho1);
     liberarAST(no->filho2);
     liberarAST(no->filho3);
     liberarAST(no->filho4);
     liberarAST(no->prox);
-    if (no->valor_str)
+
+    if (no->valor_str != NULL) {
         free(no->valor_str);
+    }
+    if (no->valor_str2 != NULL) {
+        free(no->valor_str2);
+    }
     free(no);
 }
 
-ASTNode *criarNoSwitch(ASTNode *expr, ASTNode *cases)
-{
-    ASTNode *no = criarNo(AST_SWITCH, NULL);
-    no->filho1 = expr;
-    no->filho2 = cases;
-    return no;
+// Função auxiliar para imprimir nós da AST (para depuração)
+void imprimirAST(ASTNode *no) {
+    if (no == NULL) {
+        return;
+    }
+    switch (no->tipo) {
+        case AST_LITERAL_INT:
+            printf("INT: %d\n", no->valor_int);
+            break;
+        case AST_LITERAL_FLOAT:
+            printf("FLOAT: %f\n", no->valor_float);
+            break;
+        case AST_LITERAL_STRING:
+            printf("STRING: %s\n", no->valor_str);
+            break;
+        case AST_LITERAL_CHAR:
+            printf("CHAR: %c\n", no->valor_char);
+            break;
+        case AST_LITERAL_HEX:
+            printf("HEX: %s\n", no->valor_str);
+            break;
+        case AST_VAR:
+            printf("VAR: %s\n", no->valor_str);
+            break;
+        case AST_BINARY_OP:
+            printf("BIN_OP: %s\n", no->valor_str);
+            break;
+        case AST_UNARY_OP:
+            printf("UNARY_OP: %s\n", no->valor_str);
+            break;
+        case AST_ASSIGN:
+            printf("ASSIGN: %c\n", no->valor_char);
+            break;
+        case AST_IF:
+            printf("IF\n");
+            break;
+        case AST_IF_ELSE:
+            printf("IF_ELSE\n");
+            break;
+        case AST_WHILE:
+            printf("WHILE\n");
+            break;
+        case AST_FOR:
+            printf("FOR\n");
+            break;
+        case AST_DO_WHILE:
+            printf("DO_WHILE\n");
+            break;
+        case AST_SWITCH:
+            printf("SWITCH\n");
+            break;
+        case AST_RETURN:
+            printf("RETURN\n");
+            break;
+        case AST_BREAK:
+            printf("BREAK\n");
+            break;
+        case AST_CONTINUE:
+            printf("CONTINUE\n");
+            break;
+        case AST_VAR_DECL:
+            printf("VAR_DECL: %s\n", no->valor_str);
+            break;
+        case AST_FUNC_DECL:
+            printf("FUNC_DECL: %s\n", no->valor_str);
+            break;
+        case AST_PARAM:
+            printf("PARAM: %s\n", no->valor_str);
+            break;
+        case AST_TYPE:
+            printf("TYPE: %s\n", no->valor_str);
+            break;
+        case AST_BLOCK:
+            printf("BLOCK\n");
+            break;
+        case AST_CALL:
+            printf("CALL: %s\n", no->valor_str);
+            break;
+        case AST_ARG_LIST:
+            printf("ARG_LIST\n");
+            break;
+        case AST_CASE:
+            printf("CASE\n");
+            break;
+        case AST_DEFAULT:
+            printf("DEFAULT\n");
+            break;
+        case AST_INIT:
+            printf("INIT\n");
+            break;
+        case AST_STRUCT:
+            printf("STRUCT: %s\n", no->valor_str);
+            break;
+        case AST_UNION:
+            printf("UNION: %s\n", no->valor_str);
+            break;
+        case AST_ENUM:
+            printf("ENUM: %s\n", no->valor_str);
+            break;
+        case AST_TYPEDEF:
+            printf("TYPEDEF: %s\n", no->valor_str);
+            break;
+        case AST_MEMBER_ACCESS:
+            printf("MEMBER_ACCESS\n");
+            break;
+        case AST_EMPTY:
+            printf("EMPTY\n");
+            break;
+        default:
+            printf("UNKNOWN_NODE_TYPE\n");
+            break;
+    }
+    imprimirAST(no->filho1);
+    imprimirAST(no->filho2);
+    imprimirAST(no->filho3);
+    imprimirAST(no->filho4);
+    imprimirAST(no->prox);
 }
 
-ASTNode *criarNoCase(ASTNode *expr, ASTNode *stmts)
-{
-    ASTNode *no = criarNo(expr ? AST_CASE : AST_DEFAULT, NULL);
-    no->filho1 = expr;
-    no->filho2 = stmts;
-    return no;
+void ast_to_dot(AST *node) {
+    FILE *outfile = fopen("ast.dot", "w");
+    if (outfile == NULL) {
+        perror("Erro ao criar ast.dot");
+        return;
+    }
+
+    fprintf(outfile, "digraph AST {\n");
+    fprintf(outfile, "  node [shape=box];\n");
+
+    node_counter = 0; // Resetar contador para cada nova geração de DOT
+    ast_to_dot_node(node, outfile);
+
+    fprintf(outfile, "}\n");
+    fclose(outfile);
 }
 
-ASTNode *criarNoInit(ASTNode *expr, ASTNode *lista)
-{
-    ASTNode *no = criarNo(AST_INIT, NULL);
-    no->filho1 = expr;
-    no->prox = lista;
-    return no;
-}
 
-ASTNode *criarNoUnion(const char *tipo, const char *id)
-{
-    ASTNode *no = criarNo(AST_UNION, id);
-    no->valor_str = strdup(tipo); // "struct" ou "union"
-    return no;
-}
-
-ASTNode *criarNoEnum(const char *id)
-{
-    return criarNo(AST_ENUM, id);
-}

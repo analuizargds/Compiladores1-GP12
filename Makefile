@@ -5,6 +5,7 @@ CFLAGS = -Wall -I./parser -I./ast -I./semantic
 PARSER_SRC = parser/exemplo.tab.c parser/yyerror.c
 LEXER_SRC = lexer/lex.yy.c
 AST_SRC = ast/ast.c
+MAIN_SRC = src/main.c
 SEMANTIC_SRC = semantic/semantic.c
 SYMBOL_SRC = simbolos.c
 
@@ -12,8 +13,10 @@ SYMBOL_SRC = simbolos.c
 PARSER_OBJ = parser/exemplo.tab.o parser/yyerror.o
 LEXER_OBJ = lexer/lex.yy.o
 AST_OBJ = ast/ast.o
+MAIN_OBJ = src/main.o
 SEMANTIC_OBJ = semantic/semantic.o
 SYMBOL_OBJ = simbolos.o
+OBJECTS = $(PARSER_OBJ) $(LEXER_OBJ) $(AST_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ) $(MAIN_OBJ)
 
 # Executável principal
 MAIN = exemplo
@@ -31,8 +34,8 @@ VISUALIZE_SCRIPT = $(CURDIR)/visualize.sh
 
 all: $(MAIN)
 
-$(MAIN): $(PARSER_OBJ) $(LEXER_OBJ) $(AST_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ -lfl
+$(MAIN): $(PARSER_OBJ) $(LEXER_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ) $(MAIN_OBJ) $(AST_OBJ)
+	$(CC) $(CFLAGS) -o $@ $(PARSER_OBJ) $(LEXER_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ) $(MAIN_OBJ) $(AST_OBJ) -lfl
 
 parser/exemplo.tab.o: parser/exemplo.tab.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -103,3 +106,9 @@ clean:
 rebuild: clean all
 
 .PHONY: all clean test visualize rebuild
+
+
+$(MAIN_OBJ): $(MAIN_SRC)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+

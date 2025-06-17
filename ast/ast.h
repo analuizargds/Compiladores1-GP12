@@ -50,6 +50,7 @@ typedef enum
     AST_EMPTY,
 } ASTNodeType;
 
+typedef struct ASTNode AST;
 typedef struct ASTNode
 {
     ASTNodeType tipo;
@@ -108,4 +109,8 @@ ASTNode *concatenarArg(ASTNode *lista, ASTNode *no);
 void imprimirAST(ASTNode *no);
 void liberarAST(ASTNode *no);
 
+void ast_to_dot(AST *node);
+
 #endif // AST_H
+
+
