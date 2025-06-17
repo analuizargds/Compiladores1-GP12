@@ -262,130 +262,173 @@ void liberarAST(ASTNode *no) {
     free(no);
 }
 
+// Função auxiliar para gerar uma string descritiva de um nó da AST
+// Retorna uma string alocada dinamicamente que deve ser liberada pelo chamador
+char *ast_node_to_string(AST *node) {
+    if (node == NULL) {
+        return strdup("NULL");
+    }
+
+    char buffer[256];
+    int len = 0;
+
+    switch (node->tipo) {
+        case AST_LITERAL_INT:
+            len = snprintf(buffer, sizeof(buffer), "%d", node->valor_int);
+            break;
+        case AST_LITERAL_FLOAT:
+            len = snprintf(buffer, sizeof(buffer), "%f", node->valor_float);
+            break;
+        case AST_LITERAL_STRING:
+            len = snprintf(buffer, sizeof(buffer), "\"%s\"", node->valor_str ? node->valor_str : "");
+            break;
+        case AST_LITERAL_CHAR:
+            len = snprintf(buffer, sizeof(buffer), "' %c '", node->valor_char);
+            break;
+        case AST_LITERAL_HEX:
+            len = snprintf(buffer, sizeof(buffer), "%s", node->valor_str ? node->valor_str : "");
+            break;
+        case AST_VAR:
+            len = snprintf(buffer, sizeof(buffer), "%s", node->valor_str ? node->valor_str : "UNKNOWN_VAR");
+            break;
+        case AST_BINARY_OP: {
+            char *left_str = ast_node_to_string(node->filho1);
+            char *right_str = ast_node_to_string(node->filho2);
+            len = snprintf(buffer, sizeof(buffer), "%s %s %s", left_str, node->valor_str ? node->valor_str : "OP", right_str);
+            free(left_str);
+            free(right_str);
+            break;
+        }
+        case AST_UNARY_OP: {
+            char *expr_str = ast_node_to_string(node->filho1);
+            len = snprintf(buffer, sizeof(buffer), "%s%s", node->valor_str ? node->valor_str : "OP", expr_str);
+            free(expr_str);
+            break;
+        }
+        case AST_ASSIGN: {
+            char *var_str = ast_node_to_string(node->filho1);
+            char *expr_str = ast_node_to_string(node->filho2);
+            len = snprintf(buffer, sizeof(buffer), "%s %c= %s", var_str, node->valor_char, expr_str);
+            free(var_str);
+            free(expr_str);
+            break;
+        }
+        case AST_IF:
+            len = snprintf(buffer, sizeof(buffer), "IF");
+            break;
+        case AST_IF_ELSE:
+            len = snprintf(buffer, sizeof(buffer), "IF_ELSE");
+            break;
+        case AST_WHILE:
+            len = snprintf(buffer, sizeof(buffer), "WHILE");
+            break;
+        case AST_FOR:
+            len = snprintf(buffer, sizeof(buffer), "FOR");
+            break;
+        case AST_DO_WHILE:
+            len = snprintf(buffer, sizeof(buffer), "DO_WHILE");
+            break;
+        case AST_SWITCH:
+            len = snprintf(buffer, sizeof(buffer), "SWITCH");
+            break;
+        case AST_RETURN: {
+            char *expr_str = ast_node_to_string(node->filho1);
+            len = snprintf(buffer, sizeof(buffer), "RETURN %s", expr_str);
+            free(expr_str);
+            break;
+        }
+        case AST_BREAK:
+            len = snprintf(buffer, sizeof(buffer), "BREAK");
+            break;
+        case AST_CONTINUE:
+            len = snprintf(buffer, sizeof(buffer), "CONTINUE");
+            break;
+        case AST_VAR_DECL: {
+            char *type_str = ast_node_to_string(node->filho1);
+            len = snprintf(buffer, sizeof(buffer), "VAR_DECL: %s %s", type_str, node->valor_str ? node->valor_str : "UNKNOWN");
+            free(type_str);
+            break;
+        }
+        case AST_FUNC_DECL:
+            len = snprintf(buffer, sizeof(buffer), "FUNC_DECL: %s", node->valor_str ? node->valor_str : "UNKNOWN");
+            break;
+        case AST_PARAM: {
+            char *type_str = ast_node_to_string(node->filho1);
+            len = snprintf(buffer, sizeof(buffer), "PARAM: %s %s", type_str, node->valor_str ? node->valor_str : "UNKNOWN");
+            free(type_str);
+            break;
+        }
+        case AST_TYPE:
+            len = snprintf(buffer, sizeof(buffer), "TYPE: %s", node->valor_str ? node->valor_str : "UNKNOWN");
+            break;
+        case AST_BLOCK:
+            len = snprintf(buffer, sizeof(buffer), "BLOCK");
+            break;
+        case AST_CALL: {
+            char *args_str = ast_node_to_string(node->filho1);
+            len = snprintf(buffer, sizeof(buffer), "CALL: %s(%s)", node->valor_str ? node->valor_str : "UNKNOWN", args_str);
+            free(args_str);
+            break;
+        }
+        case AST_ARG_LIST: {
+            // This is a simplified representation. For a full list, you'd iterate 'prox'
+            char *arg_str = ast_node_to_string(node->filho1); // Assuming first arg is filho1
+            len = snprintf(buffer, sizeof(buffer), "%s%s", arg_str, node->prox ? ", ..." : "");
+            free(arg_str);
+            break;
+        }
+        case AST_CASE: {
+            char *expr_str = ast_node_to_string(node->filho1);
+            len = snprintf(buffer, sizeof(buffer), "CASE %s", expr_str);
+            free(expr_str);
+            break;
+        }
+        case AST_DEFAULT:
+            len = snprintf(buffer, sizeof(buffer), "DEFAULT");
+            break;
+        case AST_INIT:
+            len = snprintf(buffer, sizeof(buffer), "INIT");
+            break;
+        case AST_STRUCT:
+            len = snprintf(buffer, sizeof(buffer), "STRUCT: %s", node->valor_str ? node->valor_str : "UNKNOWN");
+            break;
+        case AST_UNION:
+            len = snprintf(buffer, sizeof(buffer), "UNION: %s (%s)", node->valor_str ? node->valor_str : "UNKNOWN", node->valor_str2 ? node->valor_str2 : "UNKNOWN");
+            break;
+        case AST_ENUM:
+            len = snprintf(buffer, sizeof(buffer), "ENUM: %s", node->valor_str ? node->valor_str : "UNKNOWN");
+            break;
+        case AST_TYPEDEF:
+            len = snprintf(buffer, sizeof(buffer), "TYPEDEF: %s", node->valor_str ? node->valor_str : "UNKNOWN");
+            break;
+        case AST_MEMBER_ACCESS:
+            len = snprintf(buffer, sizeof(buffer), "MEMBER_ACCESS");
+            break;
+        case AST_EMPTY:
+            len = snprintf(buffer, sizeof(buffer), "EMPTY");
+            break;
+        default:
+            len = snprintf(buffer, sizeof(buffer), "UNKNOWN_NODE_TYPE (%d)", node->tipo);
+            break;
+    }
+    printf("DEBUG: ast_node_to_string for type %d generated: %s\n", node->tipo, buffer); // DEBUG PRINT
+    return strdup(buffer);
+}
+
 // Função auxiliar para imprimir nós da AST (para depuração)
 void imprimirAST(ASTNode *no) {
     if (no == NULL) {
         return;
     }
-    switch (no->tipo) {
-        case AST_LITERAL_INT:
-            printf("INT: %d\n", no->valor_int);
-            break;
-        case AST_LITERAL_FLOAT:
-            printf("FLOAT: %f\n", no->valor_float);
-            break;
-        case AST_LITERAL_STRING:
-            printf("STRING: %s\n", no->valor_str);
-            break;
-        case AST_LITERAL_CHAR:
-            printf("CHAR: %c\n", no->valor_char);
-            break;
-        case AST_LITERAL_HEX:
-            printf("HEX: %s\n", no->valor_str);
-            break;
-        case AST_VAR:
-            printf("VAR: %s\n", no->valor_str);
-            break;
-        case AST_BINARY_OP:
-            printf("BIN_OP: %s\n", no->valor_str);
-            break;
-        case AST_UNARY_OP:
-            printf("UNARY_OP: %s\n", no->valor_str);
-            break;
-        case AST_ASSIGN:
-            printf("ASSIGN: %c\n", no->valor_char);
-            break;
-        case AST_IF:
-            printf("IF\n");
-            break;
-        case AST_IF_ELSE:
-            printf("IF_ELSE\n");
-            break;
-        case AST_WHILE:
-            printf("WHILE\n");
-            break;
-        case AST_FOR:
-            printf("FOR\n");
-            break;
-        case AST_DO_WHILE:
-            printf("DO_WHILE\n");
-            break;
-        case AST_SWITCH:
-            printf("SWITCH\n");
-            break;
-        case AST_RETURN:
-            printf("RETURN\n");
-            break;
-        case AST_BREAK:
-            printf("BREAK\n");
-            break;
-        case AST_CONTINUE:
-            printf("CONTINUE\n");
-            break;
-        case AST_VAR_DECL:
-            printf("VAR_DECL: %s\n", no->valor_str);
-            break;
-        case AST_FUNC_DECL:
-            printf("FUNC_DECL: %s\n", no->valor_str);
-            break;
-        case AST_PARAM:
-            printf("PARAM: %s\n", no->valor_str);
-            break;
-        case AST_TYPE:
-            printf("TYPE: %s\n", no->valor_str);
-            break;
-        case AST_BLOCK:
-            printf("BLOCK\n");
-            break;
-        case AST_CALL:
-            printf("CALL: %s\n", no->valor_str);
-            break;
-        case AST_ARG_LIST:
-            printf("ARG_LIST\n");
-            break;
-        case AST_CASE:
-            printf("CASE\n");
-            break;
-        case AST_DEFAULT:
-            printf("DEFAULT\n");
-            break;
-        case AST_INIT:
-            printf("INIT\n");
-            break;
-        case AST_STRUCT:
-            printf("STRUCT: %s\n", no->valor_str);
-            break;
-        case AST_UNION:
-            printf("UNION: %s\n", no->valor_str);
-            break;
-        case AST_ENUM:
-            printf("ENUM: %s\n", no->valor_str);
-            break;
-        case AST_TYPEDEF:
-            printf("TYPEDEF: %s\n", no->valor_str);
-            break;
-        case AST_MEMBER_ACCESS:
-            printf("MEMBER_ACCESS\n");
-            break;
-        case AST_EMPTY:
-            printf("EMPTY\n");
-            break;
-        default:
-            printf("UNKNOWN_NODE_TYPE\n");
-            break;
-    }
-    printf("  Node ID: %p, Type: %d, Value: %s\n", (void*)no, no->tipo, no->valor_str ? no->valor_str : "");
-    if (no->filho1) printf("    Filho1: %p\n", (void*)no->filho1);
-    if (no->filho2) printf("    Filho2: %p\n", (void*)no->filho2);
-    if (no->filho3) printf("    Filho3: %p\n", (void*)no->filho3);
-    if (no->filho4) printf("    Filho4: %p\n", (void*)no->filho4);
-    if (no->prox) printf("    Prox: %p\n", (void*)no->prox);
+    char *node_str = ast_node_to_string(no);
+    printf("Node: %s (Type: %d)\n", node_str, no->tipo);
+    free(node_str);
 
-    imprimirAST(no->filho1);
-    imprimirAST(no->filho2);
-    imprimirAST(no->filho3);
-    imprimirAST(no->filho4);
-    imprimirAST(no->prox);
+    if (no->filho1) imprimirAST(no->filho1);
+    if (no->filho2) imprimirAST(no->filho2);
+    if (no->filho3) imprimirAST(no->filho3);
+    if (no->filho4) imprimirAST(no->filho4);
+    if (no->prox) imprimirAST(no->prox);
 }
 
 // Função auxiliar para gerar o código DOT de um nó da AST
@@ -396,117 +439,10 @@ static int generate_ast_dot_node(AST *node, FILE *outfile) {
     }
 
     int current_node_id = ast_node_counter++; // Assign unique ID and increment global counter
-    char label[256]; // Buffer para o rótulo do nó
-
-    switch (node->tipo) {
-        case AST_LITERAL_INT:
-            snprintf(label, sizeof(label), "INT: %d", node->valor_int);
-            break;
-        case AST_LITERAL_FLOAT:
-            snprintf(label, sizeof(label), "FLOAT: %f", node->valor_float);
-            break;
-        case AST_LITERAL_STRING:
-            snprintf(label, sizeof(label), "STRING: %s", node->valor_str ? node->valor_str : "");
-            break;
-        case AST_LITERAL_CHAR:
-            snprintf(label, sizeof(label), "CHAR: %c", node->valor_char);
-            break;
-        case AST_LITERAL_HEX:
-            snprintf(label, sizeof(label), "HEX: %s", node->valor_str ? node->valor_str : "");
-            break;
-        case AST_VAR:
-            snprintf(label, sizeof(label), "VAR: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_BINARY_OP:
-            snprintf(label, sizeof(label), "BIN_OP: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_UNARY_OP:
-            snprintf(label, sizeof(label), "UNARY_OP: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_ASSIGN:
-            snprintf(label, sizeof(label), "ASSIGN: %c", node->valor_char);
-            break;
-        case AST_IF:
-            snprintf(label, sizeof(label), "IF");
-            break;
-        case AST_IF_ELSE:
-            snprintf(label, sizeof(label), "IF_ELSE");
-            break;
-        case AST_WHILE:
-            snprintf(label, sizeof(label), "WHILE");
-            break;
-        case AST_FOR:
-            snprintf(label, sizeof(label), "FOR");
-            break;
-        case AST_DO_WHILE:
-            snprintf(label, sizeof(label), "DO_WHILE");
-            break;
-        case AST_SWITCH:
-            snprintf(label, sizeof(label), "SWITCH");
-            break;
-        case AST_RETURN:
-            snprintf(label, sizeof(label), "RETURN");
-            break;
-        case AST_BREAK:
-            snprintf(label, sizeof(label), "BREAK");
-            break;
-        case AST_CONTINUE:
-            snprintf(label, sizeof(label), "CONTINUE");
-            break;
-        case AST_VAR_DECL:
-            snprintf(label, sizeof(label), "VAR_DECL: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_FUNC_DECL:
-            snprintf(label, sizeof(label), "FUNC_DECL: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_PARAM:
-            snprintf(label, sizeof(label), "PARAM: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_TYPE:
-            snprintf(label, sizeof(label), "TYPE: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_BLOCK:
-            snprintf(label, sizeof(label), "BLOCK");
-            break;
-        case AST_CALL:
-            snprintf(label, sizeof(label), "CALL: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_ARG_LIST:
-            snprintf(label, sizeof(label), "ARG_LIST");
-            break;
-        case AST_CASE:
-            snprintf(label, sizeof(label), "CASE");
-            break;
-        case AST_DEFAULT:
-            snprintf(label, sizeof(label), "DEFAULT");
-            break;
-        case AST_INIT:
-            snprintf(label, sizeof(label), "INIT");
-            break;
-        case AST_STRUCT:
-            snprintf(label, sizeof(label), "STRUCT: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_UNION:
-            snprintf(label, sizeof(label), "UNION: %s (%s)", node->valor_str ? node->valor_str : "UNKNOWN", node->valor_str2 ? node->valor_str2 : "UNKNOWN");
-            break;
-        case AST_ENUM:
-            snprintf(label, sizeof(label), "ENUM: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_TYPEDEF:
-            snprintf(label, sizeof(label), "TYPEDEF: %s", node->valor_str ? node->valor_str : "UNKNOWN");
-            break;
-        case AST_MEMBER_ACCESS:
-            snprintf(label, sizeof(label), "MEMBER_ACCESS");
-            break;
-        case AST_EMPTY:
-            snprintf(label, sizeof(label), "EMPTY");
-            break;
-        default:
-            snprintf(label, sizeof(label), "UNKNOWN_NODE_TYPE");
-            break;
-    }
+    char *label = ast_node_to_string(node); // Use the new helper function
 
     fprintf(outfile, "  node%d [label=\"%s\"];\n", current_node_id, label);
+    free(label); // Free the dynamically allocated string
 
     // Recursively generate DOT for children and draw edges
     int child_id;
@@ -575,6 +511,7 @@ CFGNode *criarCFGNode(CFGNodeType type, const char *label, AST *ast_node_ref) {
     novoNo->ast_node_ref = ast_node_ref;
     novoNo->list_next = NULL;
     add_cfg_node_to_list(novoNo);
+    printf("DEBUG: criarCFGNode created node with label: %s (Type: %d)\n", novoNo->label, novoNo->type); // DEBUG PRINT
     return novoNo;
 }
 
@@ -719,15 +656,9 @@ CFGFragment build_cfg_from_ast(AST *node) {
             while (current_stmt != NULL) {
                 CFGFragment stmt_frag = build_cfg_from_ast(current_stmt);
                 if (stmt_frag.entry != NULL) {
-                    if (current_frag_entry == entry_node && entry_node->label == NULL) { // Se o nó de entrada do bloco ainda não tem um rótulo significativo, use o primeiro statement
-                        // Isso é um hack para evitar um nó de bloco vazio no início
-                        // Uma abordagem melhor seria ter um nó de entrada de bloco real e conectar
-                        // o primeiro statement a ele.
-                        // Por simplicidade, vamos apenas conectar o nó de entrada do bloco ao primeiro statement
-                        add_cfg_edge(current_frag_entry, stmt_frag.entry, NULL);
-                    } else {
-                        add_cfg_edge(current_frag_entry, stmt_frag.entry, NULL);
-                    }
+                    // Conecta o nó de entrada do bloco (ou o último nó do statement anterior)
+                    // ao nó de entrada do statement atual.
+                    add_cfg_edge(current_frag_entry, stmt_frag.entry, NULL);
                     current_frag_entry = stmt_frag.exit;
                 }
                 current_stmt = current_stmt->prox;
@@ -736,39 +667,38 @@ CFGFragment build_cfg_from_ast(AST *node) {
             break;
         }
         case AST_VAR_DECL: {
-            char decl_label[256];
-            snprintf(decl_label, sizeof(decl_label), "Decl: %s %s",
-                     node->filho1->valor_str ? node->filho1->valor_str : "UNKNOWN_TYPE",
-                     node->valor_str ? node->valor_str : "UNKNOWN_VAR");
+            char *decl_label = ast_node_to_string(node); // Use helper for detailed label
             entry_node = criarCFGNode(CFG_NODE_STATEMENT, decl_label, node);
             exit_node = entry_node;
+            free(decl_label);
             break;
         }
         case AST_ASSIGN: {
-            char assign_label[256];
-            snprintf(assign_label, sizeof(assign_label), "Assign: %s %c ...",
-                     node->filho1->valor_str ? node->filho1->valor_str : "UNKNOWN_VAR",
-                     node->valor_char);
+            char *assign_label = ast_node_to_string(node); // Use helper for detailed label
             entry_node = criarCFGNode(CFG_NODE_STATEMENT, assign_label, node);
             exit_node = entry_node;
+            free(assign_label);
             break;
         }
         case AST_CALL: {
-            char call_label[256];
-            snprintf(call_label, sizeof(call_label), "Call: %s(...)",
-                     node->valor_str ? node->valor_str : "UNKNOWN_FUNC");
+            char *call_label = ast_node_to_string(node); // Use helper for detailed label
             entry_node = criarCFGNode(CFG_NODE_FUNCTION_CALL, call_label, node);
             exit_node = entry_node;
+            free(call_label);
             break;
         }
         case AST_RETURN: {
-            entry_node = criarCFGNode(CFG_NODE_RETURN, "Return", node);
+            char *return_label = ast_node_to_string(node); // Use helper for detailed label
+            entry_node = criarCFGNode(CFG_NODE_RETURN, return_label, node);
             exit_node = entry_node;
+            free(return_label);
             break;
         }
         case AST_IF: {
             // IF (cond) THEN_BLOCK ELSE_BLOCK
-            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, "IF", node->filho1);
+            char *cond_str = ast_node_to_string(node->filho1);
+            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, cond_str, node->filho1);
+            free(cond_str);
             entry_node = cond_node;
 
             CFGFragment then_frag = build_cfg_from_ast(node->filho2); // thenBranch
@@ -791,8 +721,10 @@ CFGFragment build_cfg_from_ast(AST *node) {
         }
         case AST_WHILE: {
             // WHILE (cond) BODY
+            char *cond_str = ast_node_to_string(node->filho1);
             CFGNode *loop_entry = criarCFGNode(CFG_NODE_LOOP_ENTRY, "WHILE_ENTRY", node);
-            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, "WHILE_COND", node->filho1);
+            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, cond_str, node->filho1);
+            free(cond_str);
             CFGNode *loop_exit = criarCFGNode(CFG_NODE_LOOP_EXIT, "WHILE_EXIT", NULL);
 
             entry_node = loop_entry;
@@ -809,9 +741,15 @@ CFGFragment build_cfg_from_ast(AST *node) {
         }
         case AST_FOR: {
             // FOR (init; cond; increment) BODY
-            CFGNode *for_init = criarCFGNode(CFG_NODE_STATEMENT, "FOR_INIT", node->filho1);
+            char *init_str = ast_node_to_string(node->filho1);
+            char *cond_str = ast_node_to_string(node->filho2);
+            char *increment_str = ast_node_to_string(node->filho3);
+
+            CFGNode *for_init = criarCFGNode(CFG_NODE_STATEMENT, init_str, node->filho1);
+            free(init_str);
             CFGNode *loop_entry = criarCFGNode(CFG_NODE_LOOP_ENTRY, "FOR_ENTRY", node);
-            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, "FOR_COND", node->filho2);
+            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, cond_str, node->filho2);
+            free(cond_str);
             CFGNode *loop_exit = criarCFGNode(CFG_NODE_LOOP_EXIT, "FOR_EXIT", NULL);
 
             entry_node = for_init;
@@ -821,7 +759,8 @@ CFGFragment build_cfg_from_ast(AST *node) {
             add_cfg_edge(loop_entry, cond_node, NULL);
 
             CFGFragment body_frag = build_cfg_from_ast(node->filho4); // body
-            CFGNode *increment_node = criarCFGNode(CFG_NODE_STATEMENT, "FOR_INCREMENT", node->filho3);
+            CFGNode *increment_node = criarCFGNode(CFG_NODE_STATEMENT, increment_str, node->filho3);
+            free(increment_str);
 
             add_cfg_edge(cond_node, body_frag.entry, "True");
             add_cfg_edge(body_frag.exit, increment_node, NULL);
@@ -831,8 +770,10 @@ CFGFragment build_cfg_from_ast(AST *node) {
         }
         case AST_DO_WHILE: {
             // DO BODY WHILE (cond)
+            char *cond_str = ast_node_to_string(node->filho1);
             CFGNode *loop_entry = criarCFGNode(CFG_NODE_LOOP_ENTRY, "DO_WHILE_ENTRY", node);
-            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, "DO_WHILE_COND", node->filho1);
+            CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, cond_str, node->filho1);
+            free(cond_str);
             CFGNode *loop_exit = criarCFGNode(CFG_NODE_LOOP_EXIT, "DO_WHILE_EXIT", NULL);
 
             entry_node = loop_entry;
@@ -849,79 +790,29 @@ CFGFragment build_cfg_from_ast(AST *node) {
         case AST_BREAK: {
             entry_node = criarCFGNode(CFG_NODE_BREAK, "BREAK", node);
             exit_node = entry_node;
-            // Special handling for break: needs to jump out of loop/switch
-            // This will be handled by a later pass or context-aware CFG building
             break;
         }
         case AST_CONTINUE: {
             entry_node = criarCFGNode(CFG_NODE_CONTINUE, "CONTINUE", node);
             exit_node = entry_node;
-            // Special handling for continue: needs to jump to next iteration
-            // This will be handled by a later pass or context-aware CFG building
             break;
         }
         case AST_EMPTY: {
-            // Represent empty statements as a no-op node or just skip
             entry_node = criarCFGNode(CFG_NODE_STATEMENT, "EMPTY_STMT", node);
             exit_node = entry_node;
             break;
         }
-        // Para outros tipos de nós que representam statements simples ou expressões
-        case AST_LITERAL_INT:
-        case AST_LITERAL_FLOAT:
-        case AST_LITERAL_STRING:
-        case AST_LITERAL_CHAR:
-        case AST_LITERAL_HEX:
-        case AST_VAR:
-        case AST_BINARY_OP:
-        case AST_UNARY_OP:
-        case AST_TYPE:
-        case AST_PARAM:
-        case AST_ARG_LIST:
-        case AST_CASE:
-        case AST_DEFAULT:
-        case AST_INIT:
-        case AST_STRUCT:
-        case AST_UNION:
-        case AST_ENUM:
-        case AST_TYPEDEF:
-        case AST_MEMBER_ACCESS:
-            // Estes são nós de expressão ou parte de declarações, não statements de controle de fluxo por si só.
-            // Eles geralmente são incorporados nos rótulos de outros nós ou ignorados para o CFG.
-            // Para garantir que algo seja gerado, podemos criar um nó de statement genérico.
-            {
-                char expr_label[256];
-                // Tenta obter um rótulo significativo
-                if (node->valor_str) {
-                    snprintf(expr_label, sizeof(expr_label), "Expr: %s", node->valor_str);
-                } else if (node->tipo == AST_LITERAL_INT) {
-                    snprintf(expr_label, sizeof(expr_label), "Int: %d", node->valor_int);
-                } else if (node->tipo == AST_LITERAL_FLOAT) {
-                    snprintf(expr_label, sizeof(expr_label), "Float: %f", node->valor_float);
-                } else if (node->tipo == AST_LITERAL_CHAR) {
-                    snprintf(expr_label, sizeof(expr_label), "Char: %c", node->valor_char);
-                } else {
-                    snprintf(expr_label, sizeof(expr_label), "Statement/Expr (Tipo %d)", node->tipo);
-                }
-                entry_node = criarCFGNode(CFG_NODE_STATEMENT, expr_label, node);
-                exit_node = entry_node;
-            }
-            break;
         case AST_FUNC_DECL: {
-            // Para declarações de função, o CFG principal deve ter um nó de entrada para a função
-            // e o corpo da função será um sub-CFG.
-            char func_label[256];
-            snprintf(func_label, sizeof(func_label), "Function: %s", node->valor_str ? node->valor_str : "UNKNOWN_FUNC");
+            char *func_label = ast_node_to_string(node); // Use helper for detailed label
             entry_node = criarCFGNode(CFG_NODE_ENTRY, func_label, node);
+            free(func_label);
 
-            // Construir o CFG para o corpo da função
             CFGFragment body_frag = build_cfg_from_ast(node->filho3); // filho3 é o corpo da função
 
             if (body_frag.entry != NULL) {
                 add_cfg_edge(entry_node, body_frag.entry, NULL);
                 exit_node = body_frag.exit;
             } else {
-                // Função vazia ou com corpo inválido
                 exit_node = criarCFGNode(CFG_NODE_EXIT, "Function Exit (Empty Body)", NULL);
                 add_cfg_edge(entry_node, exit_node, NULL);
             }
@@ -930,10 +821,10 @@ CFGFragment build_cfg_from_ast(AST *node) {
         default:
             // Para tipos de nós não tratados explicitamente, crie um nó genérico
             {
-                char generic_label[256];
-                snprintf(generic_label, sizeof(generic_label), "Nó AST (Tipo %d)", node->tipo);
+                char *generic_label = ast_node_to_string(node);
                 entry_node = criarCFGNode(CFG_NODE_STATEMENT, generic_label, node);
                 exit_node = entry_node;
+                free(generic_label);
             }
             break;
     }

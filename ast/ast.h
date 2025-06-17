@@ -110,6 +110,57 @@ void imprimirAST(ASTNode *no);
 void liberarAST(ASTNode *no);
 
 void ast_to_dot(AST *node);
+char *ast_node_to_string(AST *node); // New function declaration
+
+// Forward declarations para as estruturas do CFG
+typedef struct CFGNode CFGNode;
+typedef struct CFGEdge CFGEdge;
+
+// Tipos de nós para o Control Flow Graph (CFG)
+typedef enum {
+    CFG_NODE_ENTRY,
+    CFG_NODE_EXIT,
+    CFG_NODE_STATEMENT,
+    CFG_NODE_CONDITION,
+    CFG_NODE_JOIN,
+    CFG_NODE_LOOP_ENTRY,
+    CFG_NODE_LOOP_EXIT,
+    CFG_NODE_FUNCTION_CALL,
+    CFG_NODE_RETURN,
+    CFG_NODE_BREAK,
+    CFG_NODE_CONTINUE,
+    CFG_NODE_BLOCK_ENTRY,
+} CFGNodeType;
+
+// Estrutura para um nó do Control Flow Graph (CFG)
+typedef struct CFGNode {
+    int id; // ID único para o nó DOT
+    CFGNodeType type;
+    char *label; // Rótulo para o nó (e.g., código, condição)
+    CFGEdge *edges; // Lista de arestas de saída
+    AST *ast_node_ref; // Referência ao nó da AST que gerou este CFGNode
+    struct CFGNode *list_next; // Próximo nó na lista global de todos os nós CFG
+} CFGNode;
+
+// Estrutura para uma aresta no CFG
+typedef struct CFGEdge {
+    CFGNode *to; // Nó de destino
+    char *label; // Rótulo da aresta (e.g., "True", "False")
+    CFGEdge *next; // Próxima aresta na lista de adjacência
+} CFGEdge;
+
+// Estrutura para representar um fragmento do CFG (entrada e saída)
+typedef struct {
+    CFGNode *entry;
+    CFGNode *exit;
+} CFGFragment;
+
+// Funções para criar nós do CFG
+CFGNode *criarCFGNode(CFGNodeType type, const char *label, AST *ast_node_ref);
+void add_cfg_edge(CFGNode *from, CFGNode *to, const char *label);
+void liberarCFG(void);
+void cfg_to_dot(AST *node);
+CFGFragment build_cfg_from_ast(AST *node);
 
 #endif // AST_H
 
