@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
 
     if (root) {
         ast_to_dot(root);
+        cfg_to_dot(root);
     }
 
     if (yyin != stdin) {
