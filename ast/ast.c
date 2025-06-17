@@ -286,7 +286,7 @@ char *ast_node_to_string(AST *node) {
             len = snprintf(buffer, sizeof(buffer), "\"%s\"", node->valor_str ? node->valor_str : "");
             break;
         case AST_LITERAL_CHAR:
-            len = snprintf(buffer, sizeof(buffer), "' %c '", node->valor_char);
+            len = snprintf(buffer, sizeof(buffer), "\'%c\'", node->valor_char);
             break;
         case AST_LITERAL_HEX:
             len = snprintf(buffer, sizeof(buffer), "%s", node->valor_str ? node->valor_str : "");
@@ -565,7 +565,9 @@ void cfg_to_dot(AST *node) {
         return;
     }
     fprintf(outfile, "digraph CFG {\n");
-    fprintf(outfile, "  node [shape=box];\n");
+    fprintf(outfile, "  rankdir=TB;\n"); // Top to bottom layout
+    fprintf(outfile, "  node [fontname=\"Helvetica\", fontsize=10];\n");
+    fprintf(outfile, "  edge [fontname=\"Helvetica\", fontsize=8];\n");
 
     liberarCFG(); // Limpa qualquer CFG anterior
     cfg_node_counter = 0; // Reinicia o contador de nós do CFG
@@ -573,64 +575,105 @@ void cfg_to_dot(AST *node) {
 
     CFGFragment main_cfg = build_cfg_from_ast(node);
 
-    // Map to store nodes by cluster_id
-    // This is a simplified approach. For a large number of nodes/clusters,
-    // a more robust data structure (e.g., hash map) would be better.
-    // For now, we'll iterate through the global list multiple times.
-
-    // First pass: Print nodes that are not part of any cluster
+    // First pass: Print nodes that are not part of any cluster (main function body statements)
     CFGNode *current_node = cfg_nodes_head;
     while (current_node != NULL) {
         if (current_node->cluster_id == -1) {
             char shape[32];
-            char color[32];
+            char fillcolor[32];
+            char fontcolor[32];
+            char style[32];
+
             switch (current_node->type) {
                 case CFG_NODE_ENTRY:
-                    strcpy(shape, "Mdiamond");
-                    strcpy(color, "green");
+                    strcpy(shape, "oval");
+                    strcpy(fillcolor, "#9966CC"); // Purple
+                    strcpy(fontcolor, "white");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_EXIT:
-                    strcpy(shape, "Msquare");
-                    strcpy(color, "red");
+                    strcpy(shape, "oval");
+                    strcpy(fillcolor, "#9966CC"); // Purple
+                    strcpy(fontcolor, "white");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_CONDITION:
                     strcpy(shape, "diamond");
-                    strcpy(color, "blue");
+                    strcpy(fillcolor, "#FF6666"); // Red
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_LOOP_ENTRY:
-                    strcpy(shape, "octagon");
-                    strcpy(color, "purple");
+                    strcpy(shape, "hexagon");
+                    strcpy(fillcolor, "#CC9966"); // Brown/Orange
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_LOOP_EXIT:
                     strcpy(shape, "doubleoctagon");
-                    strcpy(color, "darkred");
+                    strcpy(fillcolor, "#CC9966"); // Brown/Orange
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_FUNCTION_CALL:
                     strcpy(shape, "parallelogram");
-                    strcpy(color, "orange");
+                    strcpy(fillcolor, "#66CCFF"); // Light Blue
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_RETURN:
-                    strcpy(shape, "pentagon");
-                    strcpy(color, "darkgreen");
+                    strcpy(shape, "box");
+                    strcpy(fillcolor, "#66CC66"); // Green
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_BREAK:
                 case CFG_NODE_CONTINUE:
                     strcpy(shape, "triangle");
-                    strcpy(color, "brown");
+                    strcpy(fillcolor, "#FFCC66"); // Yellow/Orange
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_BLOCK_ENTRY:
                     strcpy(shape, "box");
-                    strcpy(color, "gray");
+                    strcpy(fillcolor, "#CCCCCC"); // Light Gray
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
+                    break;
+                case CFG_NODE_JOIN:
+                    strcpy(shape, "circle");
+                    strcpy(fillcolor, "#99CCFF"); // Light Blue for join
+                    strcpy(fontcolor, "black");
+                    strcpy(style, "filled");
                     break;
                 case CFG_NODE_STATEMENT:
-                case CFG_NODE_JOIN:
                 default:
-                    strcpy(shape, "box");
-                    strcpy(color, "black");
+                    // Distinguish declarations/assignments from I/O or generic statements
+                    if (current_node->ast_node_ref && 
+                        (current_node->ast_node_ref->tipo == AST_VAR_DECL || 
+                         current_node->ast_node_ref->tipo == AST_ASSIGN)) {
+                        strcpy(shape, "box");
+                        strcpy(fillcolor, "#FFFF66"); // Yellow for declarations/assignments
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
+                    } else if (current_node->ast_node_ref && 
+                               (current_node->ast_node_ref->tipo == AST_CALL && 
+                                (strcmp(current_node->ast_node_ref->valor_str, "printf") == 0 || 
+                                 strcmp(current_node->ast_node_ref->valor_str, "scanf") == 0))) {
+                        strcpy(shape, "parallelogram");
+                        strcpy(fillcolor, "#66CCFF"); // Light Blue for I/O
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
+                    } else {
+                        strcpy(shape, "box");
+                        strcpy(fillcolor, "white"); // Default white box
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
+                    }
                     break;
             }
-            fprintf(outfile, "  node%d [label=\"%s\", shape=%s, color=%s];\n",
-                    current_node->id, current_node->label ? current_node->label : "NULL", shape, color);
+            fprintf(outfile, "  node%d [label=\"%s\", shape=%s, style=\"%s\", fillcolor=\"%s\", fontcolor=\"%s\"];\n",
+                    current_node->id, current_node->label ? current_node->label : "NULL", shape, style, fillcolor, fontcolor);
         }
         current_node = current_node->list_next;
     }
@@ -638,61 +681,110 @@ void cfg_to_dot(AST *node) {
     // Second pass: Print clusters and their nodes
     for (int i = 1; i <= cluster_id_counter; i++) {
         fprintf(outfile, "  subgraph cluster_%d {\n", i);
-        fprintf(outfile, "    label = \"Cluster %d\";\n", i); // Optional: label for the cluster
-        fprintf(outfile, "    style=filled;\n    color=lightgrey;\n"); // Optional: styling for the cluster
+        // Add label and background color to clusters
+        fprintf(outfile, "    label = \"\";\n"); // No label for the cluster itself
+        fprintf(outfile, "    style=dashed;\n");
+        fprintf(outfile, "    color=gray;\n"); // Dashed border for clusters
+        fprintf(outfile, "    fillcolor=\"#F0F0F0\";\n"); // Lighter fill color
+        fprintf(outfile, "    rankdir=TB;\n"); // Ensure top-to-bottom layout within cluster
 
         current_node = cfg_nodes_head;
         while (current_node != NULL) {
             if (current_node->cluster_id == i) {
                 char shape[32];
-                char color[32];
+                char fillcolor[32];
+                char fontcolor[32];
+                char style[32];
+
                 switch (current_node->type) {
                     case CFG_NODE_ENTRY:
-                        strcpy(shape, "Mdiamond");
-                        strcpy(color, "green");
+                        strcpy(shape, "oval");
+                        strcpy(fillcolor, "#9966CC"); // Purple
+                        strcpy(fontcolor, "white");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_EXIT:
-                        strcpy(shape, "Msquare");
-                        strcpy(color, "red");
+                        strcpy(shape, "oval");
+                        strcpy(fillcolor, "#9966CC"); // Purple
+                        strcpy(fontcolor, "white");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_CONDITION:
                         strcpy(shape, "diamond");
-                        strcpy(color, "blue");
+                        strcpy(fillcolor, "#FF6666"); // Red
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_LOOP_ENTRY:
-                        strcpy(shape, "octagon");
-                        strcpy(color, "purple");
+                        strcpy(shape, "hexagon");
+                        strcpy(fillcolor, "#CC9966"); // Brown/Orange
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_LOOP_EXIT:
                         strcpy(shape, "doubleoctagon");
-                        strcpy(color, "darkred");
+                        strcpy(fillcolor, "#CC9966"); // Brown/Orange
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_FUNCTION_CALL:
                         strcpy(shape, "parallelogram");
-                        strcpy(color, "orange");
+                        strcpy(fillcolor, "#66CCFF"); // Light Blue
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_RETURN:
-                        strcpy(shape, "pentagon");
-                        strcpy(color, "darkgreen");
+                        strcpy(shape, "box");
+                        strcpy(fillcolor, "#66CC66"); // Green
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_BREAK:
                     case CFG_NODE_CONTINUE:
                         strcpy(shape, "triangle");
-                        strcpy(color, "brown");
+                        strcpy(fillcolor, "#FFCC66"); // Yellow/Orange
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_BLOCK_ENTRY:
                         strcpy(shape, "box");
-                        strcpy(color, "gray");
+                        strcpy(fillcolor, "#CCCCCC"); // Light Gray
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
+                        break;
+                    case CFG_NODE_JOIN:
+                        strcpy(shape, "circle");
+                        strcpy(fillcolor, "#99CCFF"); // Light Blue for join
+                        strcpy(fontcolor, "black");
+                        strcpy(style, "filled");
                         break;
                     case CFG_NODE_STATEMENT:
-                    case CFG_NODE_JOIN:
                     default:
-                        strcpy(shape, "box");
-                        strcpy(color, "black");
+                        if (current_node->ast_node_ref && 
+                            (current_node->ast_node_ref->tipo == AST_VAR_DECL || 
+                             current_node->ast_node_ref->tipo == AST_ASSIGN)) {
+                            strcpy(shape, "box");
+                            strcpy(fillcolor, "#FFFF66"); // Yellow for declarations/assignments
+                            strcpy(fontcolor, "black");
+                            strcpy(style, "filled");
+                        } else if (current_node->ast_node_ref && 
+                                   (current_node->ast_node_ref->tipo == AST_CALL && 
+                                    (strcmp(current_node->ast_node_ref->valor_str, "printf") == 0 || 
+                                     strcmp(current_node->ast_node_ref->valor_str, "scanf") == 0))) {
+                            strcpy(shape, "parallelogram");
+                            strcpy(fillcolor, "#66CCFF"); // Light Blue for I/O
+                            strcpy(fontcolor, "black");
+                            strcpy(style, "filled");
+                        } else {
+                            strcpy(shape, "box");
+                            strcpy(fillcolor, "white"); // Default white box
+                            strcpy(fontcolor, "black");
+                            strcpy(style, "filled");
+                        }
                         break;
                 }
-                fprintf(outfile, "    node%d [label=\"%s\", shape=%s, color=%s];\n",
-                        current_node->id, current_node->label ? current_node->label : "NULL", shape, color);
+                fprintf(outfile, "    node%d [label=\"%s\", shape=%s, style=\"%s\", fillcolor=\"%s\", fontcolor=\"%s\"];\n",
+                        current_node->id, current_node->label ? current_node->label : "NULL", shape, style, fillcolor, fontcolor);
             }
             current_node = current_node->list_next;
         }
@@ -806,7 +898,7 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, int current_cluster_id) {
             CFGFragment then_frag = build_cfg_from_ast_recursive(node->filho2, if_cluster_id); // thenBranch
             CFGFragment else_frag = build_cfg_from_ast_recursive(node->filho3, if_cluster_id); // elseBranch
 
-            CFGNode *join_node = criarCFGNode(CFG_NODE_JOIN, "JOIN", NULL);
+            CFGNode *join_node = criarCFGNode(CFG_NODE_JOIN, "", NULL); // Label is empty for join node
             join_node->cluster_id = if_cluster_id;
             exit_node = join_node;
 
@@ -827,24 +919,22 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, int current_cluster_id) {
             int while_cluster_id = ++cluster_id_counter; // New cluster for WHILE statement
 
             char *cond_str = ast_node_to_string(node->filho1);
-            CFGNode *loop_entry = criarCFGNode(CFG_NODE_LOOP_ENTRY, "WHILE_ENTRY", node);
-            loop_entry->cluster_id = while_cluster_id;
             CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, cond_str, node->filho1);
             cond_node->cluster_id = while_cluster_id;
             free(cond_str);
-            CFGNode *loop_exit = criarCFGNode(CFG_NODE_LOOP_EXIT, "WHILE_EXIT", NULL);
-            loop_exit->cluster_id = while_cluster_id;
-
-            entry_node = loop_entry;
-            exit_node = loop_exit;
-
-            add_cfg_edge(loop_entry, cond_node, NULL);
+            
+            entry_node = cond_node;
 
             CFGFragment body_frag = build_cfg_from_ast_recursive(node->filho2, while_cluster_id); // body
 
             add_cfg_edge(cond_node, body_frag.entry, "True");
-            add_cfg_edge(body_frag.exit, loop_entry, NULL); // Loop back
-            add_cfg_edge(cond_node, loop_exit, "False");
+            add_cfg_edge(body_frag.exit, cond_node, NULL); // Loop back to condition
+            
+            // Create a dummy exit node for the while loop to connect to the rest of the CFG
+            CFGNode *loop_exit_node = criarCFGNode(CFG_NODE_JOIN, "", NULL); // Use JOIN node as exit
+            loop_exit_node->cluster_id = while_cluster_id;
+            add_cfg_edge(cond_node, loop_exit_node, "False");
+            exit_node = loop_exit_node;
             break;
         }
         case AST_FOR: {
@@ -858,29 +948,30 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, int current_cluster_id) {
             CFGNode *for_init = criarCFGNode(CFG_NODE_STATEMENT, init_str, node->filho1);
             for_init->cluster_id = for_cluster_id;
             free(init_str);
-            CFGNode *loop_entry = criarCFGNode(CFG_NODE_LOOP_ENTRY, "FOR_ENTRY", node);
-            loop_entry->cluster_id = for_cluster_id;
+            
             CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, cond_str, node->filho2);
             cond_node->cluster_id = for_cluster_id;
             free(cond_str);
-            CFGNode *loop_exit = criarCFGNode(CFG_NODE_LOOP_EXIT, "FOR_EXIT", NULL);
-            loop_exit->cluster_id = for_cluster_id;
-
-            entry_node = for_init;
-            exit_node = loop_exit;
-
-            add_cfg_edge(for_init, loop_entry, NULL);
-            add_cfg_edge(loop_entry, cond_node, NULL);
-
-            CFGFragment body_frag = build_cfg_from_ast_recursive(node->filho4, for_cluster_id); // body
+            
             CFGNode *increment_node = criarCFGNode(CFG_NODE_STATEMENT, increment_str, node->filho3);
             increment_node->cluster_id = for_cluster_id;
             free(increment_str);
 
+            entry_node = for_init;
+
+            add_cfg_edge(for_init, cond_node, NULL);
+
+            CFGFragment body_frag = build_cfg_from_ast_recursive(node->filho4, for_cluster_id); // body
+
             add_cfg_edge(cond_node, body_frag.entry, "True");
             add_cfg_edge(body_frag.exit, increment_node, NULL);
-            add_cfg_edge(increment_node, loop_entry, NULL); // Loop back
-            add_cfg_edge(cond_node, loop_exit, "False");
+            add_cfg_edge(increment_node, cond_node, NULL); // Loop back to condition
+            
+            // Create a dummy exit node for the for loop to connect to the rest of the CFG
+            CFGNode *loop_exit_node = criarCFGNode(CFG_NODE_JOIN, "", NULL); // Use JOIN node as exit
+            loop_exit_node->cluster_id = for_cluster_id;
+            add_cfg_edge(cond_node, loop_exit_node, "False");
+            exit_node = loop_exit_node;
             break;
         }
         case AST_DO_WHILE: {
@@ -888,23 +979,22 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, int current_cluster_id) {
             int do_while_cluster_id = ++cluster_id_counter; // New cluster for DO_WHILE statement
 
             char *cond_str = ast_node_to_string(node->filho1);
-            CFGNode *loop_entry = criarCFGNode(CFG_NODE_LOOP_ENTRY, "DO_WHILE_ENTRY", node);
-            loop_entry->cluster_id = do_while_cluster_id;
             CFGNode *cond_node = criarCFGNode(CFG_NODE_CONDITION, cond_str, node->filho1);
             cond_node->cluster_id = do_while_cluster_id;
             free(cond_str);
-            CFGNode *loop_exit = criarCFGNode(CFG_NODE_LOOP_EXIT, "DO_WHILE_EXIT", NULL);
-            loop_exit->cluster_id = do_while_cluster_id;
-
-            entry_node = loop_entry;
-            exit_node = loop_exit;
-
+            
             CFGFragment body_frag = build_cfg_from_ast_recursive(node->filho2, do_while_cluster_id); // body
 
-            add_cfg_edge(loop_entry, body_frag.entry, NULL);
+            entry_node = body_frag.entry; // Entry is the body
+
             add_cfg_edge(body_frag.exit, cond_node, NULL);
-            add_cfg_edge(cond_node, loop_entry, "True"); // Loop back
-            add_cfg_edge(cond_node, loop_exit, "False");
+            add_cfg_edge(cond_node, body_frag.entry, "True"); // Loop back to body
+            
+            // Create a dummy exit node for the do-while loop to connect to the rest of the CFG
+            CFGNode *loop_exit_node = criarCFGNode(CFG_NODE_JOIN, "", NULL); // Use JOIN node as exit
+            loop_exit_node->cluster_id = do_while_cluster_id;
+            add_cfg_edge(cond_node, loop_exit_node, "False");
+            exit_node = loop_exit_node;
             break;
         }
         case AST_BREAK: {
