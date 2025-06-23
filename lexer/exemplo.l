@@ -1,3 +1,4 @@
+%option yylineno
 %{
 #include <string.h>
 #include <stdlib.h> 
@@ -334,8 +335,10 @@ void generate_symtab_json(FILE* output) {
 
 /* Definições de padrões de token e ações */
 %%
-
-[ \t\r\n]+              { /* Não faz nada, apenas ignora */ }
+\n { /* yylineno é incrementado automaticamente */ }
+[ \t\r]+              { /* Não faz nada, apenas ignora */ }
+"//".*                { /* ignora comentários de linha */ }
+"/*"([^*]|\*+[^*/])*\*+"/"    { /* ignora comentários de bloco */ }
 
 "typedef" { return TYPEDEF; }
 "struct" { return STRUCT; }
@@ -532,6 +535,5 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
-    
     return yyparse();
 }
