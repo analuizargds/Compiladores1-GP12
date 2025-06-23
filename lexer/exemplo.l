@@ -535,5 +535,14 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
+
     return yyparse();
+    /* int parse_result = yyparse();
+    if (parse_result == 0) {
+        // Se não houve erro sintático, faz análise semântica
+        perform_semantic_analysis(root);
+    } else {
+        fprintf(stderr, "\nAnálise semântica não realizada devido a erro sintático.\n");
+    }
+    return parse_result; */
 }
