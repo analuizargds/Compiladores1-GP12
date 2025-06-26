@@ -18,6 +18,8 @@ typedef enum
     AST_MINUS_ASSIGN,
     AST_MULT_ASSIGN,
     AST_DIV_ASSIGN,
+    AST_MOD_ASSIGN, 
+    AST_TERNARY,
 
     AST_IF,
     AST_IF_ELSE,
@@ -82,6 +84,7 @@ ASTNode *criarNoType(const char *tipo);
 ASTNode *criarNoBinOp(const char *op, ASTNode *esq, ASTNode *dir);
 ASTNode *criarNoUnaryOp(char *op, ASTNode *expr);
 ASTNode *criarNoAssign(char op, ASTNode *var, ASTNode *expr);
+ASTNode* criarNoTernario(ASTNode* cond, ASTNode* expr_true, ASTNode* expr_false);
 ASTNode *criarNoIf(ASTNode *cond, ASTNode *thenBranch, ASTNode *elseBranch);
 ASTNode *criarNoWhile(ASTNode *cond, ASTNode *body);
 ASTNode *criarNoDoWhile(ASTNode *cond, ASTNode *body);

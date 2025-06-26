@@ -94,6 +94,9 @@ ASTNode *criarNoAssign(char op, ASTNode *var, ASTNode *expr)
     case '/':
         tipo = AST_DIV_ASSIGN;
         break;
+    case '%':
+        tipo = AST_MOD_ASSIGN;
+        break;
     default:
         tipo = AST_ASSIGN;
     }
@@ -101,6 +104,16 @@ ASTNode *criarNoAssign(char op, ASTNode *var, ASTNode *expr)
     no->filho1 = var;
     no->filho2 = expr;
     return no;
+}
+
+ASTNode* criarNoTernario(ASTNode* cond, ASTNode* expr_true, ASTNode* expr_false) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->tipo = AST_TERNARY; 
+    node->filho1 = cond;
+    node->filho2 = expr_true;
+    node->filho3 = expr_false;
+    node->valor_str = NULL;
+    return node;
 }
 
 ASTNode *criarNoIf(ASTNode *cond, ASTNode *thenBranch, ASTNode *elseBranch)

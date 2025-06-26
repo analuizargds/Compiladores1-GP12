@@ -31,14 +31,16 @@ void report_unsupported_feature(const char* feature, int line) {
 %token STRUCT UNION ENUM TYPEDEF
 %token HEX CARACT
 %token INCREMENT DECREMENT
-%token PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
+%token PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN MOD_ASSIGN
+%token QUESTION
 %token AND OR NOT
 %token BITAND BITOR BITXOR BITNOT SHIFTLEFT SHIFTRIGHT
 
 // Tokens para construções não suportadas completamente
 %token LBRACKET RBRACKET INCLUDE POINTER AMPERSAND
 
-%right ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
+%right ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN MOD_ASSIGN
+%left QUESTION
 %left OR
 %left AND
 %left BITOR
@@ -70,7 +72,7 @@ void report_unsupported_feature(const char* feature, int line) {
 %type <strValue> HEX
 
 %type <node> programa lista_declaracoes declaracao
-%type <node> stmt expr atrib_expr or_expr and_expr bitor_expr bitxor_expr
+%type <node> stmt expr atrib_expr ternary_expr or_expr and_expr bitor_expr bitxor_expr
 %type <node> bitand_expr equal_expr relacao_expr shift_expr add_expr mult_expr
 %type <node> unary_expr fator var chamada argumentos lista_args
 %type <node> declaracao_variavel lista_variaveis variavel
@@ -544,7 +546,7 @@ expr:
     ;
 
 atrib_expr:
-    or_expr { $$ = $1; }
+    ternary_expr { $$ = $1; }
     | var ASSIGN atrib_expr { 
         /* Verificar se variável foi declarada */
         if ($1 && $1->valor_str) {
@@ -617,10 +619,30 @@ atrib_expr:
             criarNoBinOp("/", $1, $3)
         ); 
     }
+    | var MOD_ASSIGN atrib_expr { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoAssign('=', 
+            $1, 
+            criarNoBinOp("%", $1, $3)
+        ); 
+    }
     | var error { 
         $$ = NULL; 
         yyerror("Operação de atribuição inválida"); 
     }
+    ;
+
+ternary_expr:
+    or_expr { $$ = $1; } 
+    | or_expr QUESTION expr COLON ternary_expr { $$ = criarNoTernario($1, $3, $5);}
     ;
 
 or_expr:

@@ -401,6 +401,7 @@ void generate_symtab_json(FILE* output) {
 "-="    { return MINUS_ASSIGN; }
 "\*="   { return MULT_ASSIGN; }
 "/="    { return DIV_ASSIGN; }
+"%="    { return MOD_ASSIGN; }
 "*"     { return MULT; }
 "/"     { return DIV; }
 "%"     { return MOD; }
@@ -418,6 +419,7 @@ void generate_symtab_json(FILE* output) {
 "<<"    { return SHIFTLEFT; }
 ">>"    { return SHIFTRIGHT; }
 
+"?"     { return QUESTION; }
 ":"     { return COLON; }
 ";"     { return SEMICOLON; }
 "{"     { return LBRACE; }
