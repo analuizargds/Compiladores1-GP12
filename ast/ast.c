@@ -385,7 +385,7 @@ char *ast_node_to_string(AST *node)
             strcmp(op, ">=") == 0 || strcmp(op, "<=") == 0 ||
             strcmp(op, "&&") == 0 || strcmp(op, "||") == 0)
         {
-            snprintf(buffer, sizeof(buffer), "(%s %s %s)", left_str, op, right_str);
+            snprintf(buffer, sizeof(buffer), "%s %s %s", left_str, op, right_str);
         }
         else
         {
@@ -1170,8 +1170,8 @@ void cfg_to_mermaid(AST *root_ast)
             node_class = "decision";
             break;
         case CFG_NODE_JOIN:
-            node_shape_start = "(( ))";
-            node_shape_end = "";
+            node_shape_start = "[";
+            node_shape_end = "]";
             node_class = "join";
             break;
         case CFG_NODE_RETURN:
@@ -1195,7 +1195,7 @@ void cfg_to_mermaid(AST *root_ast)
         // Define node without inline style
         if (current->type == CFG_NODE_JOIN && strlen(node_label_escaped) == 0)
         {
-            fprintf(fp, "    %d%s%s\n", current->id, node_shape_start, node_shape_end);
+            fprintf(fp, "    %d%s %s\n", current->id, node_shape_start, node_shape_end);
         }
         else
         {
@@ -1428,7 +1428,7 @@ char *ast_node_to_string_with_values(AST *node)
                 strcmp(op, ">=") == 0 || strcmp(op, "<=") == 0 ||
                 strcmp(op, "&&") == 0 || strcmp(op, "||") == 0)
             {
-                snprintf(buffer, sizeof(buffer), "(%s %s %s)", left_str, op, right_str);
+                snprintf(buffer, sizeof(buffer), "%s %s %s", left_str, op, right_str);
             }
             else
             {
