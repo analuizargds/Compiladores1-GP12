@@ -83,7 +83,6 @@ void report_unsupported_feature(const char* feature, int line) {
 %type <node> declaracao_tipo struct_declaracao union_declaracao enum_declaracao typedef_declaracao
 %type <node> tipo expr_stmt lista_identificadores
 %type <node> inicializador lista_inicializadores
-%type <node> for_parer for_init
 
 %%
 
@@ -207,26 +206,9 @@ for_stmt:
     }
 ;
 
-for_init:
-    expr { $$ = $1; }
-    | declaracao_variavel { $$ = $1; }
-    | /* vazio */ { $$ = NULL; }
-    ;
-
-for_parer:
-    expr { $$ = $1; }
-    | /* vazio */ { $$ = NULL; }
-    ;
-
 do_stmt:
-    DO {
-        /* Iniciar novo escopo para o do-while */
-        iniciarEscopo();
-    }
-    stmt WHILE LPAREN expr RPAREN SEMICOLON { 
-        /* Finalizar escopo do do-while */
-        finalizarEscopo();
-        $$ = criarNoDoWhile($6, $3); 
+    DO stmt WHILE LPAREN expr RPAREN SEMICOLON { 
+        $$ = criarNoDoWhile($5, $2); 
     }
     | DO stmt WHILE LPAREN error RPAREN SEMICOLON {
         $$ = NULL;
@@ -336,10 +318,6 @@ tipo:
         }
         $$ = criarNoEnum($2); 
     }
-    | tipo MULT {
-        $$ = NULL;
-        report_unsupported_feature("Ponteiros", yylineno);
-    }
     ;
 
 lista_variaveis:
@@ -367,7 +345,7 @@ variavel:
     }
 
 fun_declaracao:
-    tipo ID LPAREN {
+    tipo ID LPAREN parametros RPAREN composto_stmt { 
         /* Verificar se função já foi declarada no escopo atual */
         if ($2) {
             Simbolo *existente = buscarSimboloNoEscopoAtual($2);
@@ -379,34 +357,7 @@ fun_declaracao:
                 inserirSimbolo($2, TIPO_FUNCAO);
             }
         }
-        /* Iniciar novo escopo para parâmetros e corpo da função */
-        iniciarEscopo();
-    }
-    parametros RPAREN composto_stmt { 
-        /* Finalizar escopo da função */
-        finalizarEscopo();
-        $$ = criarNoFuncDecl($2, $1, $5, $7); 
-    }
-    | tipo ID LPAREN {
-        /* Verificar se função já foi declarada no escopo atual */
-        if ($2) {
-            Simbolo *existente = buscarSimboloNoEscopoAtual($2);
-            if (existente != NULL) {
-                char erro[256];
-                snprintf(erro, sizeof(erro), "Erro semântico: Função '%s' já declarada neste escopo", $2);
-                yyerror(erro);
-            } else {
-                inserirSimbolo($2, TIPO_FUNCAO);
-            }
-        }
-        /* Iniciar novo escopo para parâmetros */
-        iniciarEscopo();
-    }
-    parametros RPAREN error { 
-        /* Finalizar escopo mesmo com erro */
-        finalizarEscopo();
-        $$ = NULL; 
-        yyerror("Corpo de função inválido ou ausente"); 
+        $$ = criarNoFuncDecl($2, $1, $4, $6); 
     }
     ;
 
@@ -477,33 +428,8 @@ expr_stmt:
     ;
 
 composto_stmt:
-    LBRACE {
-        /* Iniciar novo escopo para bloco composto */
-        iniciarEscopo();
-    }
-    lista_declaracoes RBRACE { 
-        /* Finalizar escopo do bloco composto */
-        finalizarEscopo();
-        $$ = $3; 
-    }
-    | LBRACE {
-        /* Iniciar novo escopo para bloco vazio */
-        iniciarEscopo();
-    }
-    RBRACE { 
-        /* Finalizar escopo do bloco vazio */
-        finalizarEscopo();
-        $$ = NULL; 
-    }
-    | LBRACE {
-        /* Iniciar novo escopo mesmo com erro */
-        iniciarEscopo();
-    }
-    error RBRACE { 
-        /* Finalizar escopo mesmo com erro */
-        finalizarEscopo();
-        $$ = NULL; 
-        yyerror("Bloco de comandos com erro"); 
+    LBRACE comandos_opt RBRACE { 
+        $$ = $2; 
     }
     ;
 
