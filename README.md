@@ -1,55 +1,72 @@
-# CtoMMD - Compilador C para Mermaid Flowchart
+# Compilador C Simplificado
 
-CtoMMD é um compilador que converte código C em fluxogramas visuais usando a sintaxe Mermaid. O compilador analisa a estrutura do código C e gera um grafo de fluxo de controle (CFG) que pode ser visualizado como um fluxograma intuitivo, ideal para iniciantes em programação.
+Este repositório contém a implementação de um compilador simplificado para a linguagem C, desenvolvido como parte do projeto da disciplina de Compiladores.
 
-## Características
+## Estrutura do Projeto
 
-- **Análise sintática completa**: Processa declarações de variáveis, estruturas de controle (if-else, while, for), funções e retornos
-- **Fluxograma detalhado**: Gera visualizações que mostram o fluxo de execução do código
-- **Formato Mermaid**: Saída compatível com visualizadores Mermaid populares
-- **Estilo Flowgorithm**: Visual similar ao Flowgorithm para facilitar a compreensão
-- **Cores diferenciadas**: Cada tipo de nó tem cor e forma específicas (decisões, processos, início/fim)
+O projeto está organizado da seguinte forma:
 
-## Pré-requisitos
+```
+.
+├── ast/                # Implementação da Árvore Sintática Abstrata (AST)
+├── lexer/              # Analisador léxico (Flex)
+├── parser/             # Analisador sintático (Bison)
+├── semantic/           # Análise semântica
+├── tests/              # Arquivos de teste
+│   ├── valid/          # Testes com código válido
+│   └── invalid/        # Testes com código inválido
+├── visualization/      # Visualizações geradas da AST e tabela de símbolos
+├── exemplo             # Executável principal do compilador
+├── Makefile            # Regras de compilação
+├── cfg_design.md       # Documentação de explicação para funcionamento da conversão para fluxograma
+├── README.md           # Este arquivo de leitura
+├── run_tests.sh        # Script para automação de testes
+├── simbolos.c          # Implementação da tabela de símbolos
+├── simbolos.h          # Cabeçalho da tabela de símbolos
+└── visualize.sh        # Script para visualização da AST e tabela de símbolos
+```
 
-### Para compilar o CtoMMD:
+## Requisitos
+
 - GCC (GNU Compiler Collection)
-- Flex (analisador léxico)
-- Bison (gerador de parser)
+- Flex (Fast Lexical Analyzer)
+- Bison (GNU Parser Generator)
+- MermaidCLI (opcional, para visualização gráfica)
 - Make
 
-### Para visualizar os fluxogramas:
-- Navegador web com acesso à internet (para visualizadores online)
-- OU editor que suporte Mermaid (VS Code, Obsidian, etc.)
-- OU **Mermaid CLI** (recomendado para conversão em imagens)
+O Mermaid CLI é a opção prática para converter os arquivos diretmanete na máquina, porém pode ser substituido por um Navegador Web com acesso à internet ou ainda um editor que tenha suporte à arquivos mermaid (.mmd), como VS Code, Obsidian.
+Informações adicionais:
+
+- **GitHub**: [mermaid-js/mermaid-cli](https://github.com/mermaid-js/mermaid-cli)
+- **Documentação**: [Mermaid CLI Documentation](https://github.com/mermaid-js/mermaid-cli#readme)
 
 ## Instalação do Mermaid CLI
 
 O Mermaid CLI permite converter arquivos `.mmd` diretamente para imagens PNG, SVG ou PDF.
 
-### Instalação via npm:
+### Instalação via npm
+
 ```bash
 npm install -g @mermaid-js/mermaid-cli
 ```
 
-### Verificar instalação:
+### Verificar instalação
+
 ```bash
 mmdc --version
 ```
 
-### Repositório oficial:
-- **GitHub**: [mermaid-js/mermaid-cli](https://github.com/mermaid-js/mermaid-cli)
-- **Documentação**: [Mermaid CLI Documentation](https://github.com/mermaid-js/mermaid-cli#readme)
+## Instalação do compilador
 
-## Instalação
+1. Clone o repositório
 
-1. Clone o repositório:
 ```bash
 git clone https://github.com/analuizargds/Compiladores1-GP12.git
 cd Compiladores1-GP12
 ```
 
-2. Compile o projeto:
+2. Compile o projeto
+
 ```bash
 make clean
 make
@@ -65,26 +82,24 @@ Isso criará o executável `CtoMMD` no diretório raiz.
 ./CtoMMD arquivo_entrada.c
 ```
 
-Exemplo:
-```bash
-./CtoMMD entrada.c
-```
-
 Isso gerará um arquivo `cfg.mmd` contendo o fluxograma em formato Mermaid.
 
 ### 2. Usar o Makefile para compilação e conversão automática
 
-#### Gerar fluxograma e converter para PNG:
+#### Gerar fluxograma e converter para PNG
+
 ```bash
 make compPng ARQUIVO=entrada.c
 ```
 
-#### Gerar fluxograma e converter para PDF:
+#### Gerar fluxograma e converter para PDF
+
 ```bash
 make compPdf ARQUIVO=entrada.c
 ```
 
-#### Limpar arquivos gerados:
+#### Limpar arquivos gerados
+
 ```bash
 make clean        # Remove arquivos objeto e executável
 make cleanImg     # Remove arquivos PNG e PDF gerados
@@ -93,7 +108,8 @@ make cleanAll     # Remove todos os arquivos gerados
 
 ### 3. Visualizar o fluxograma manualmente
 
-#### Opção A: Visualizador online (Recomendado)
+#### Opção A: Visualizador online
+
 1. Abra um visualizador Mermaid online:
    - [Mermaid Live Editor](https://mermaid.live/)
    - [Mermaid Chart](https://www.mermaidchart.com/)
@@ -103,11 +119,13 @@ make cleanAll     # Remove todos os arquivos gerados
 3. O fluxograma será renderizado automaticamente
 
 #### Opção B: VS Code com extensão Mermaid
+
 1. Instale a extensão "Mermaid Preview" no VS Code
 2. Abra o arquivo `cfg.mmd` no VS Code
 3. Use Ctrl+Shift+P e digite "Mermaid: Preview"
 
 #### Opção C: Mermaid CLI (conversão manual)
+
 ```bash
 # Para PNG
 mmdc -i cfg.mmd -o fluxograma.png
@@ -117,55 +135,6 @@ mmdc -i cfg.mmd -o fluxograma.pdf
 
 # Para SVG
 mmdc -i cfg.mmd -o fluxograma.svg
-```
-
-## Exemplo de Uso
-
-### Código C de entrada (`exemplo.c`):
-```c
-int main(){
-   int x;
-
-   if (x > 0) {
-       x = x + 1;
-   } else {
-       x = x - 1;
-   }
-   return 0;
-}
-```
-
-### Comando:
-```bash
-./CtoMMD exemplo.c
-```
-
-### Saída gerada (`cfg.mmd`):
-```mermaid
-graph TD
-    0([Start: main]) :::startEnd
-    2[VAR_DECL: TYPE: int x] :::process
-    3{x > 0} :::decision
-    6[x = x - 1] :::process
-    5[x = x + 1] :::process
-    4(( )) :::join
-    7[RETURN 0] :::return
-    1([End]) :::startEnd
-    0 --> 2
-    2 --> 3
-    3 -->|False| 6
-    3 -->|True| 5
-    6 --> 4
-    5 --> 4
-    4 --> 7
-    7 --> 1
-
-    classDef startEnd fill:#90EE90,stroke:#333,stroke-width:2px,color:#000
-    classDef decision fill:#FFD700,stroke:#333,stroke-width:2px,color:#000
-    classDef process fill:#87CEEB,stroke:#333,stroke-width:2px,color:#000
-    classDef function fill:#DDA0DD,stroke:#333,stroke-width:2px,color:#000
-    classDef return fill:#FFA07A,stroke:#333,stroke-width:2px,color:#000
-    classDef join fill:#D3D3D3,stroke:#333,stroke-width:2px,color:#000
 ```
 
 ## Tipos de Nós no Fluxograma
@@ -179,53 +148,51 @@ graph TD
 | Retorno | Retângulo `[texto]` | Laranja | Instruções return |
 | Junção | Círculo pequeno `(( ))` | Cinza | Convergência de fluxos |
 
-## Estruturas Suportadas
+## Arquivos de Teste
 
-- **Declarações de variáveis**: `int x;`, `float y;`
-- **Atribuições**: `x = 5;`, `y = x + 1;`
-- **Condicionais**: `if (condição) { ... } else { ... }`
-- **Loops**: `while (condição) { ... }`, `for (init; condição; incremento) { ... }`
-- **Funções**: `int main() { ... }`, chamadas de função
-- **Retornos**: `return valor;`
-- **Operações**: aritméticas, relacionais, lógicas
+### Testes Válidos
+
+- `test_declarations.c`: Testa diferentes tipos de declarações válidas
+- `test_expressions.c`: Testa diferentes tipos de expressões válidas
+- `test_control_structures.c`: Testa diferentes estruturas de controle válidas
+
+### Testes Inválidos
+
+- `test_syntax_errors.c`: Contém erros de sintaxe para testar o compilador
+- `test_semantic_errors.c`: Contém erros semânticos para testar o compilador
+- `test_scope_errors.c`: Contém erros de escopo para testar o compilador
+
+## Funcionalidades Implementadas
+
+- Análise léxica
+- Análise sintática
+- Construção da AST
+- Tabela de símbolos
+- Análise semântica
+- Verificação de tipos
+- Visualização da AST e tabela de símbolos
+- Testes automatizados
 
 ## Solução de Problemas
 
 ### Erro de compilação
+
 - Verifique se todos os pré-requisitos estão instalados
 - Execute `make clean` antes de `make`
 
 ### Arquivo cfg.mmd não gerado
+
 - Verifique se o arquivo C de entrada existe
 - Verifique se há erros de sintaxe no código C
 
 ### Fluxograma não renderiza
+
 - Verifique se o conteúdo do arquivo cfg.mmd está correto
+- Para Linux, não execute como root, há um [problema conhecido](https://github.com/mermaid-js/mermaid-cli/blob/11.6.0/docs/linux-sandbox-issue.md)
 - Teste em diferentes visualizadores Mermaid
 
-## Desenvolvimento
+## Contribuidores
 
-### Estrutura do projeto:
-```
-├── ast/           # Árvore de Sintaxe Abstrata e CFG
-├── lexer/         # Analisador léxico
-├── parser/        # Analisador sintático
-├── semantic/      # Análise semântica
-├── src/           # Código principal
-├── Makefile       # Script de compilação
-└── README.md      # Esta documentação
-```
-
-### Para desenvolvedores:
-- O arquivo principal está em `src/main.c`
-- A geração do CFG está implementada em `ast/ast.c`
-- A função `build_and_generate_cfg_mermaid()` é responsável pela conversão
-
-## Licença
-
-Este projeto é parte do curso de Compiladores e está disponível para fins educacionais.
-
-## Contribuições
-
-Contribuições são bem-vindas! Por favor, abra uma issue ou pull request no repositório GitHub.
-
+| ![Ana Luiza Rodrigues](https://github.com/analuizargds.png) | ![Julia Lopes](https://github.com/WonnzDA.png) | ![Luana Medeiros](https://github.com/LuaMedeiros.png) | ![Lucas Meireles](https://github.com/Katuner.png) | ![Milena Aires](https://github.com/milenaaires.png) | ![Rodrigo Mattos](https://github.com/Rodrigomfab88.png) |
+|:----------------:|:--------------------:|:---------------------:|:-------------------:|:-------------------:|:-------------------:|
+|[Ana Luiza Rodrigues](https://github.com/analuizargds)|[Julia Lopes](https://github.com/WonnzDA)|[Luana Medeiros](https://github.com/LuaMedeiros)|[Lucas Meireles](https://github.com/Katuner)| [Milena Aires](https://github.com/milenaaires)|[Rodrigo Mattos](https://github.com/Rodrigomfab88)|
