@@ -3,7 +3,7 @@
 # Diretórios
 VALID_DIR="tests/valid"
 INVALID_DIR="tests/invalid"
-COMPILER="./exemplo"
+COMPILER="./CtoMMD"
 
 # Contadores
 TOTAL_TESTS=0

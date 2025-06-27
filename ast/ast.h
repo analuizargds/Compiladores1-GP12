@@ -1,14 +1,22 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdio.h>
+
+// Forward declarations
+typedef struct ASTNode AST;
+typedef struct CFGNode CFGNode;
+
+// Enum para tipos de nós da AST
 typedef enum
 {
+    AST_PROGRAM,
+    AST_BLOCK,
     AST_LITERAL_INT,
     AST_LITERAL_FLOAT,
     AST_LITERAL_STRING,
     AST_LITERAL_CHAR,
     AST_LITERAL_HEX,
-
     AST_VAR,
     AST_BINARY_OP,
     AST_UNARY_OP,
@@ -18,7 +26,7 @@ typedef enum
     AST_MINUS_ASSIGN,
     AST_MULT_ASSIGN,
     AST_DIV_ASSIGN,
-    AST_MOD_ASSIGN, 
+    AST_MOD_ASSIGN,
     AST_TERNARY,
 
     AST_IF,
@@ -35,41 +43,32 @@ typedef enum
     AST_FUNC_DECL,
     AST_PARAM,
     AST_TYPE,
-    AST_BLOCK,
     AST_CALL,
     AST_ARG_LIST,
-
     AST_CASE,
     AST_DEFAULT,
-
     AST_INIT,
     AST_STRUCT,
     AST_UNION,
     AST_ENUM,
     AST_TYPEDEF,
     AST_MEMBER_ACCESS,
-
     AST_EMPTY,
+    AST_LAST_NODE_TYPE // Should always be the last enum member
 } ASTNodeType;
 
+// Estrutura para um nó da AST
 typedef struct ASTNode
 {
     ASTNodeType tipo;
-    struct ASTNode *filho1;
-    struct ASTNode *filho2;
-    struct ASTNode *filho3;
-    struct ASTNode *filho4;
-    struct ASTNode *prox;
-
-    // Valores possíveis
+    struct ASTNode *filho1, *filho2, *filho3, *filho4;
+    struct ASTNode *prox; // Para listas de statements, parâmetros, etc.
     int valor_int;
     float valor_float;
     char valor_char;
     char *valor_str;
-    char *valor_str2; // Para nomes adicionais (ex: nome de tipo personalizado)
-
-    // Informação de linha para mensagens de erro
-    int linha;
+    char *valor_str2; // Para casos específicos como UNION
+    int linha;        // Número da linha no código fonte
 } ASTNode;
 
 // Funções para criar nós da AST
@@ -84,7 +83,7 @@ ASTNode *criarNoType(const char *tipo);
 ASTNode *criarNoBinOp(const char *op, ASTNode *esq, ASTNode *dir);
 ASTNode *criarNoUnaryOp(char *op, ASTNode *expr);
 ASTNode *criarNoAssign(char op, ASTNode *var, ASTNode *expr);
-ASTNode* criarNoTernario(ASTNode* cond, ASTNode* expr_true, ASTNode* expr_false);
+ASTNode *criarNoTernario(ASTNode *cond, ASTNode *expr_true, ASTNode *expr_false);
 ASTNode *criarNoIf(ASTNode *cond, ASTNode *thenBranch, ASTNode *elseBranch);
 ASTNode *criarNoWhile(ASTNode *cond, ASTNode *body);
 ASTNode *criarNoDoWhile(ASTNode *cond, ASTNode *body);
@@ -97,7 +96,6 @@ ASTNode *criarNoFuncDecl(const char *id, ASTNode *tipo, ASTNode *params, ASTNode
 ASTNode *criarNoParam(const char *id, ASTNode *tipo);
 ASTNode *criarNoBlock(ASTNode *stmtList);
 ASTNode *criarNoCall(const char *id, ASTNode *args);
-
 ASTNode *criarNoSwitch(ASTNode *expr, ASTNode *cases);
 ASTNode *criarNoCase(ASTNode *expr, ASTNode *stmts);
 ASTNode *criarNoInit(ASTNode *expr, ASTNode *lista);
@@ -108,7 +106,58 @@ ASTNode *criarNoEnum(const char *id);
 ASTNode *concatenarStmt(ASTNode *lista, ASTNode *no);
 ASTNode *concatenarParam(ASTNode *lista, ASTNode *no);
 ASTNode *concatenarArg(ASTNode *lista, ASTNode *no);
-void imprimirAST(ASTNode *no);
 void liberarAST(ASTNode *no);
+char *ast_node_to_string(AST *node);
+void imprimirAST(ASTNode *no);
+
+// Tipos de nós para o Control Flow Graph (CFG)
+typedef enum
+{
+    CFG_NODE_ENTRY,
+    CFG_NODE_EXIT,
+    CFG_NODE_STATEMENT,
+    CFG_NODE_CONDITION,
+    CFG_NODE_JOIN,
+    CFG_NODE_LOOP_ENTRY,
+    CFG_NODE_FUNCTION_CALL,
+    CFG_NODE_FUNCTION_ARGS,
+    CFG_NODE_RETURN,
+    CFG_NODE_LAST_TYPE // Should always be the last enum member
+} CFGNodeType;
+
+// Estrutura para uma aresta no CFG
+typedef struct CFGEdge
+{
+    CFGNode *to;          // Nó de destino
+    char *label;          // Rótulo da aresta (e.g., "True", "False")
+    struct CFGEdge *next; // Próxima aresta na lista de adjacência
+} CFGEdge;
+
+// Estrutura para um nó no CFG
+typedef struct CFGNode
+{
+    int id;
+    CFGNodeType type;
+    char *label;               // Rótulo para o nó (e.g., código, condição)
+    CFGEdge *edges;            // Lista de arestas de saída
+    AST *ast_node_ref;         // Referência ao nó da AST que gerou este CFGNode
+    struct CFGNode *list_next; // Próximo nó na lista global de todos os nós CFG
+    int visited;               // Para travessia do grafo (e.g., BFS/DFS)
+} CFGNode;
+
+// Estrutura para representar um fragmento do CFG (entrada e saída)
+typedef struct
+{
+    CFGNode *entry;
+    CFGNode *exit;
+} CFGFragment;
+
+// Funções para o Control Flow Graph (CFG)
+CFGNode *criarCFGNode(CFGNodeType type, const char *label, AST *ast_node_ref);
+void add_cfg_edge(CFGNode *from, CFGNode *to, const char *label);
+void liberarCFG(void);
+void cfg_to_mermaid(AST *root_ast);
+CFGFragment build_cfg_from_ast_recursive(AST *node, CFGNode *entry_node, CFGNode *exit_node);
+void build_and_generate_cfg_mermaid(AST *root);
 
 #endif // AST_H

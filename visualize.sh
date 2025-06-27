@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 # Diretórios e arquivos
 OUTPUT_DIR="visualization"
-COMPILER="./exemplo"
+COMPILER="./CtoMMD"
 DOT_CMD=$(which dot 2>/dev/null)
 
 # Verifica se o diretório de saída existe

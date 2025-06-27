@@ -5,6 +5,7 @@ CFLAGS = -Wall -I./parser -I./ast -I./semantic
 PARSER_SRC = parser/exemplo.tab.c parser/yyerror.c
 LEXER_SRC = lexer/lex.yy.c
 AST_SRC = ast/ast.c
+MAIN_SRC = src/main.c
 SEMANTIC_SRC = semantic/semantic.c
 SYMBOL_SRC = simbolos.c
 
@@ -12,11 +13,13 @@ SYMBOL_SRC = simbolos.c
 PARSER_OBJ = parser/exemplo.tab.o parser/yyerror.o
 LEXER_OBJ = lexer/lex.yy.o
 AST_OBJ = ast/ast.o
+MAIN_OBJ = src/main.o
 SEMANTIC_OBJ = semantic/semantic.o
 SYMBOL_OBJ = simbolos.o
+OBJECTS = $(PARSER_OBJ) $(LEXER_OBJ) $(AST_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ) $(MAIN_OBJ)
 
 # Executável principal
-MAIN = exemplo
+MAIN = CtoMMD
 
 # Executável de teste para análise semântica
 TEST_SEMANTIC = test_semantic
@@ -31,8 +34,8 @@ VISUALIZE_SCRIPT = $(CURDIR)/visualize.sh
 
 all: $(MAIN)
 
-$(MAIN): $(PARSER_OBJ) $(LEXER_OBJ) $(AST_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ -lfl
+$(MAIN): $(PARSER_OBJ) $(LEXER_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ) $(MAIN_OBJ) $(AST_OBJ)
+	$(CC) $(CFLAGS) -o $@ $(PARSER_OBJ) $(LEXER_OBJ) $(SEMANTIC_OBJ) $(SYMBOL_OBJ) $(MAIN_OBJ) $(AST_OBJ) -lfl
 
 parser/exemplo.tab.o: parser/exemplo.tab.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -99,7 +102,70 @@ clean:
 	rm -f parser/exemplo.tab.c parser/exemplo.tab.h lexer/lex.yy.c
 	rm -rf $(VISUALIZATION_DIR)
 
+# Limpa arquivos de imagem gerados
+cleanImg:
+	@echo "Removendo arquivos de imagem gerados..."
+	rm -f *.png *.pdf *.svg cfg.mmd
+
+# Limpa todos os arquivos gerados
+cleanAll: clean cleanImg
+	@echo "Todos os arquivos gerados foram removidos."
+
+# Compila e gera fluxograma em PNG
+compPng: $(MAIN)
+	@echo "Compilando código C e gerando fluxograma em PNG..."
+	@if [ -z "$(ARQUIVO)" ]; then \
+		echo "ERRO: Especifique o arquivo C usando ARQUIVO=nome_do_arquivo.c"; \
+		echo "Exemplo: make compPng ARQUIVO=entrada.c"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(ARQUIVO)" ]; then \
+		echo "ERRO: Arquivo $(ARQUIVO) não encontrado"; \
+		exit 1; \
+	fi
+	@echo "Processando arquivo: $(ARQUIVO)"
+	./$(MAIN) $(ARQUIVO)
+	@if [ ! -f "cfg.mmd" ]; then \
+		echo "ERRO: Arquivo cfg.mmd não foi gerado"; \
+		exit 1; \
+	fi
+	@echo "Verificando se Mermaid CLI está instalado..."
+	@which mmdc > /dev/null || (echo "ERRO: Mermaid CLI não encontrado. Instale com: npm install -g @mermaid-js/mermaid-cli" && exit 1)
+	@echo "Convertendo para PNG..."
+	mmdc -i cfg.mmd -o fluxograma.png
+	@echo "✅ Fluxograma gerado com sucesso: fluxograma.png"
+
+# Compila e gera fluxograma em PDF
+compPdf: $(MAIN)
+	@echo "Compilando código C e gerando fluxograma em PDF..."
+	@if [ -z "$(ARQUIVO)" ]; then \
+		echo "ERRO: Especifique o arquivo C usando ARQUIVO=nome_do_arquivo.c"; \
+		echo "Exemplo: make compPdf ARQUIVO=entrada.c"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(ARQUIVO)" ]; then \
+		echo "ERRO: Arquivo $(ARQUIVO) não encontrado"; \
+		exit 1; \
+	fi
+	@echo "Processando arquivo: $(ARQUIVO)"
+	./$(MAIN) $(ARQUIVO)
+	@if [ ! -f "cfg.mmd" ]; then \
+		echo "ERRO: Arquivo cfg.mmd não foi gerado"; \
+		exit 1; \
+	fi
+	@echo "Verificando se Mermaid CLI está instalado..."
+	@which mmdc > /dev/null || (echo "ERRO: Mermaid CLI não encontrado. Instale com: npm install -g @mermaid-js/mermaid-cli" && exit 1)
+	@echo "Convertendo para PDF..."
+	mmdc -i cfg.mmd -o fluxograma.pdf
+	@echo "✅ Fluxograma gerado com sucesso: fluxograma.pdf"
+
 # Limpa e reconstrói tudo
 rebuild: clean all
 
-.PHONY: all clean test visualize rebuild
+.PHONY: all clean cleanImg cleanAll compPng compPdf test visualize rebuild
+
+
+$(MAIN_OBJ): $(MAIN_SRC)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+
