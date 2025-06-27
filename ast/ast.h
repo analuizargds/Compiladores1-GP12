@@ -108,6 +108,7 @@ ASTNode *concatenarParam(ASTNode *lista, ASTNode *no);
 ASTNode *concatenarArg(ASTNode *lista, ASTNode *no);
 void liberarAST(ASTNode *no);
 char *ast_node_to_string(AST *node);
+char *ast_node_to_string_with_values(AST *node);
 void imprimirAST(ASTNode *no);
 
 // Tipos de nós para o Control Flow Graph (CFG)

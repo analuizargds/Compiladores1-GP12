@@ -763,7 +763,7 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, CFGNode *entry_node, CFGNode
     }
     case AST_VAR_DECL:
     {
-        char *node_label = ast_node_to_string(node);
+        char *node_label = ast_node_to_string_with_values(node);
         CFGNode *stmt_node = criarCFGNode(CFG_NODE_STATEMENT, node_label, node);
         fragment.entry = stmt_node;
         fragment.exit = stmt_node;
@@ -772,7 +772,7 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, CFGNode *entry_node, CFGNode
         // Se há inicialização (AST_INIT), processar também
         if (node->filho2 && node->filho2->tipo == AST_INIT)
         {
-            char *init_label = ast_node_to_string(node->filho2);
+            char *init_label = ast_node_to_string_with_values(node->filho2);
             CFGNode *init_node = criarCFGNode(CFG_NODE_STATEMENT, init_label, node->filho2);
             add_cfg_edge(stmt_node, init_node, NULL);
             fragment.exit = init_node;
@@ -798,7 +798,7 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, CFGNode *entry_node, CFGNode
     case AST_DIV_ASSIGN:
     case AST_MOD_ASSIGN:
     {
-        char *node_label = ast_node_to_string(node);
+        char *node_label = ast_node_to_string_with_values(node);
         CFGNode *stmt_node = criarCFGNode(CFG_NODE_STATEMENT, node_label, node);
         fragment.entry = stmt_node;
         fragment.exit = stmt_node;
@@ -1354,3 +1354,155 @@ void build_and_generate_cfg_mermaid(AST *root_ast)
     // Generate Mermaid from the built CFG
     cfg_to_mermaid(root_ast);
 }
+
+// Função auxiliar para avaliar expressões simples e incluir valores conhecidos
+char *ast_node_to_string_with_values(AST *node)
+{
+    if (node == NULL)
+    {
+        return strdup("NULL");
+    }
+
+    char buffer[256];
+
+    switch (node->tipo)
+    {
+    case AST_LITERAL_INT:
+        snprintf(buffer, sizeof(buffer), "%d", node->valor_int);
+        break;
+    case AST_LITERAL_FLOAT:
+        snprintf(buffer, sizeof(buffer), "%.2f", node->valor_float);
+        break;
+    case AST_LITERAL_STRING:
+        snprintf(buffer, sizeof(buffer), "\"%s\"", node->valor_str ? node->valor_str : "");
+        break;
+    case AST_LITERAL_CHAR:
+        snprintf(buffer, sizeof(buffer), "\'%c\'", node->valor_char);
+        break;
+    case AST_LITERAL_HEX:
+        snprintf(buffer, sizeof(buffer), "%s", node->valor_str ? node->valor_str : "");
+        break;
+    case AST_VAR:
+        snprintf(buffer, sizeof(buffer), "%s", node->valor_str ? node->valor_str : "UNKNOWN_VAR");
+        break;
+    case AST_BINARY_OP:
+    {
+        char *left_str = ast_node_to_string_with_values(node->filho1);
+        char *right_str = ast_node_to_string_with_values(node->filho2);
+        char *op = node->valor_str ? node->valor_str : "OP";
+
+        // Tentar avaliar operações simples com literais
+        if (node->filho1 && node->filho2 && 
+            node->filho1->tipo == AST_LITERAL_INT && node->filho2->tipo == AST_LITERAL_INT)
+        {
+            int left_val = node->filho1->valor_int;
+            int right_val = node->filho2->valor_int;
+            int result = 0;
+            int can_evaluate = 1;
+
+            if (strcmp(op, "+") == 0) result = left_val + right_val;
+            else if (strcmp(op, "-") == 0) result = left_val - right_val;
+            else if (strcmp(op, "*") == 0) result = left_val * right_val;
+            else if (strcmp(op, "/") == 0 && right_val != 0) result = left_val / right_val;
+            else if (strcmp(op, "%") == 0 && right_val != 0) result = left_val % right_val;
+            else can_evaluate = 0;
+
+            if (can_evaluate && strcmp(op, "/") != 0 && strcmp(op, "%") != 0)
+            {
+                snprintf(buffer, sizeof(buffer), "%d", result);
+            }
+            else if (can_evaluate)
+            {
+                snprintf(buffer, sizeof(buffer), "%d", result);
+            }
+            else
+            {
+                snprintf(buffer, sizeof(buffer), "%s %s %s", left_str, op, right_str);
+            }
+        }
+        else
+        {
+            // Para operadores de comparação, mostrar de forma mais clara
+            if (strcmp(op, "==") == 0 || strcmp(op, "!=") == 0 ||
+                strcmp(op, ">") == 0 || strcmp(op, "<") == 0 ||
+                strcmp(op, ">=") == 0 || strcmp(op, "<=") == 0 ||
+                strcmp(op, "&&") == 0 || strcmp(op, "||") == 0)
+            {
+                snprintf(buffer, sizeof(buffer), "(%s %s %s)", left_str, op, right_str);
+            }
+            else
+            {
+                snprintf(buffer, sizeof(buffer), "%s %s %s", left_str, op, right_str);
+            }
+        }
+        free(left_str);
+        free(right_str);
+        break;
+    }
+    case AST_ASSIGN:
+    {
+        char *var_str = ast_node_to_string_with_values(node->filho1);
+        char *expr_str = ast_node_to_string_with_values(node->filho2);
+        
+        // Se a expressão é um literal simples, mostrar o valor
+        if (node->filho2 && node->filho2->tipo == AST_LITERAL_INT)
+        {
+            snprintf(buffer, sizeof(buffer), "%s = %d", var_str, node->filho2->valor_int);
+        }
+        else if (node->filho2 && node->filho2->tipo == AST_LITERAL_FLOAT)
+        {
+            snprintf(buffer, sizeof(buffer), "%s = %.2f", var_str, node->filho2->valor_float);
+        }
+        else if (node->filho2 && node->filho2->tipo == AST_LITERAL_CHAR)
+        {
+            snprintf(buffer, sizeof(buffer), "%s = '%c'", var_str, node->filho2->valor_char);
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), "%s = %s", var_str, expr_str);
+        }
+        free(var_str);
+        free(expr_str);
+        break;
+    }
+    case AST_VAR_DECL:
+    {
+        char *type_str = ast_node_to_string_with_values(node->filho1);
+        
+        // Se há inicialização, incluir o valor
+        if (node->filho2)
+        {
+            char *init_str = ast_node_to_string_with_values(node->filho2);
+            if (node->filho2->tipo == AST_LITERAL_INT)
+            {
+                snprintf(buffer, sizeof(buffer), "VAR_DECL: %s %s = %d", type_str, 
+                        node->valor_str ? node->valor_str : "UNKNOWN", node->filho2->valor_int);
+            }
+            else if (node->filho2->tipo == AST_LITERAL_FLOAT)
+            {
+                snprintf(buffer, sizeof(buffer), "VAR_DECL: %s %s = %.2f", type_str, 
+                        node->valor_str ? node->valor_str : "UNKNOWN", node->filho2->valor_float);
+            }
+            else
+            {
+                snprintf(buffer, sizeof(buffer), "VAR_DECL: %s %s = %s", type_str, 
+                        node->valor_str ? node->valor_str : "UNKNOWN", init_str);
+            }
+            free(init_str);
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), "VAR_DECL: %s %s", type_str, 
+                    node->valor_str ? node->valor_str : "UNKNOWN");
+        }
+        free(type_str);
+        break;
+    }
+    default:
+        // Para outros tipos, usar a função original
+        return ast_node_to_string(node);
+    }
+
+    return strdup(buffer);
+}
+
