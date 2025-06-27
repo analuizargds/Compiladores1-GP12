@@ -937,6 +937,7 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, CFGNode *entry_node, CFGNode
         break;
     }
     case AST_IF:
+    case AST_IF_ELSE:
     {
         // Create condition node
         char *cond_label = ast_node_to_string(node->filho1);
