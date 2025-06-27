@@ -1,4 +1,4 @@
-# Compilador C Simplificado
+# CtoMMD
 
 Este repositório contém a implementação de um compilador simplificado para a linguagem C, desenvolvido como parte do projeto da disciplina de Compiladores.
 
@@ -16,7 +16,7 @@ O projeto está organizado da seguinte forma:
 │   ├── valid/          # Testes com código válido
 │   └── invalid/        # Testes com código inválido
 ├── visualization/      # Visualizações geradas da AST e tabela de símbolos
-├── exemplo             # Executável principal do compilador
+├── exemplo             # CtoMMD
 ├── Makefile            # Regras de compilação
 ├── cfg_design.md       # Documentação de explicação para funcionamento da conversão para fluxograma
 ├── README.md           # Este arquivo de leitura
