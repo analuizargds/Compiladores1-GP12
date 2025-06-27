@@ -187,6 +187,9 @@ void imprimirSimbolo(Simbolo *s)
     case TIPO_ERRO:
         tipo_str = "erro";
         break;
+    case TIPO_VARIAVEL:
+        tipo_str = "variavel";
+        break;
     default:
         tipo_str = "desconhecido";
     }

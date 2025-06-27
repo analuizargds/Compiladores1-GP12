@@ -1,7 +1,0 @@
-int main() {
-    int decimal = 42;
-    int hexadecimal = 0x2A;
-    char letra = 'Z';
-    char nova_linha = '\n';
-    return 0;
-}

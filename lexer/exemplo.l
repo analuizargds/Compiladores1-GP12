@@ -1,3 +1,4 @@
+%option yylineno
 %{
 #include <string.h>
 #include <stdlib.h> 
@@ -14,8 +15,10 @@ extern ASTNode* root;
 
 /* Definições de padrões de token e ações */
 %%
-
-[ \t\r\n]+              { /* Não faz nada, apenas ignora */ }
+\n { /* yylineno é incrementado automaticamente */ }
+[ \t\r]+              { /* Não faz nada, apenas ignora */ }
+"//".*                { /* ignora comentários de linha */ }
+"/*"([^*]|\*+[^*/])*\*+"/"    { /* ignora comentários de bloco */ }
 
 "typedef" { return TYPEDEF; }
 "struct" { return STRUCT; }
@@ -97,6 +100,7 @@ extern ASTNode* root;
 "-="    { return MINUS_ASSIGN; }
 "\*="   { return MULT_ASSIGN; }
 "/="    { return DIV_ASSIGN; }
+"%="    { return MOD_ASSIGN; }
 "*"     { return MULT; }
 "/"     { return DIV; }
 "%"     { return MOD; }
@@ -114,6 +118,7 @@ extern ASTNode* root;
 "<<"    { return SHIFTLEFT; }
 ">>"    { return SHIFTRIGHT; }
 
+"?"     { return QUESTION; }
 ":"     { return COLON; }
 ";"     { return SEMICOLON; }
 "{"     { return LBRACE; }
@@ -129,5 +134,4 @@ extern ASTNode* root;
                       }
 
 . { /* Ignorar outros caracteres */ }
-
 

@@ -14,7 +14,8 @@ typedef enum
     TIPO_UNION,
     TIPO_ENUM,
     TIPO_FUNCAO,
-    TIPO_ERRO
+    TIPO_ERRO,
+    TIPO_VARIAVEL
 } TipoSimbolo;
 
 #define TAM_HASH 211
