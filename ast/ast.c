@@ -763,30 +763,79 @@ CFGFragment build_cfg_from_ast_recursive(AST *node, CFGNode *entry_node, CFGNode
     }
     case AST_VAR_DECL:
     {
-        char *node_label = ast_node_to_string_with_values(node);
-        CFGNode *stmt_node = criarCFGNode(CFG_NODE_STATEMENT, node_label, node);
-        fragment.entry = stmt_node;
-        fragment.exit = stmt_node;
-        free(node_label);
-
-        // Se há inicialização (AST_INIT), processar também
-        if (node->filho2 && node->filho2->tipo == AST_INIT)
+        // Verificar se é uma declaração com inicialização (nó AST_ASSIGN)
+        if (node->tipo == AST_VAR_DECL && node->prox && node->prox->tipo == AST_ASSIGN)
         {
-            char *init_label = ast_node_to_string_with_values(node->filho2);
-            CFGNode *init_node = criarCFGNode(CFG_NODE_STATEMENT, init_label, node->filho2);
-            add_cfg_edge(stmt_node, init_node, NULL);
-            fragment.exit = init_node;
-            free(init_label);
-        }
-
-        // Check if there are sibling nodes
-        if (node->prox)
-        {
-            CFGFragment sibling_frag = build_cfg_from_ast_recursive(node->prox, NULL, NULL);
-            if (sibling_frag.entry && sibling_frag.exit)
+            // Criar nó de declaração
+            char *decl_label = ast_node_to_string_with_values(node);
+            CFGNode *decl_node = criarCFGNode(CFG_NODE_STATEMENT, decl_label, node);
+            
+            // Criar nó de atribuição
+            char *assign_label = ast_node_to_string_with_values(node->prox);
+            CFGNode *assign_node = criarCFGNode(CFG_NODE_STATEMENT, assign_label, node->prox);
+            
+            // Conectar com linha pontilhada
+            add_cfg_edge(decl_node, assign_node, "");
+            
+            fragment.entry = decl_node;
+            fragment.exit = assign_node;
+            
+            free(decl_label);
+            free(assign_label);
+            
+            // Pular o próximo nó (AST_ASSIGN) já processado
+            if (node->prox && node->prox->prox)
             {
-                add_cfg_edge(fragment.exit, sibling_frag.entry, NULL);
-                fragment.exit = sibling_frag.exit;
+                CFGFragment sibling_frag = build_cfg_from_ast_recursive(node->prox->prox, NULL, NULL);
+                if (sibling_frag.entry && sibling_frag.exit)
+                {
+                    add_cfg_edge(fragment.exit, sibling_frag.entry, NULL);
+                    fragment.exit = sibling_frag.exit;
+                }
+            }
+        }
+        else
+        {
+            // Declaração simples sem inicialização
+            char *node_label = ast_node_to_string_with_values(node);
+            CFGNode *stmt_node = criarCFGNode(CFG_NODE_STATEMENT, node_label, node);
+            fragment.entry = stmt_node;
+            fragment.exit = stmt_node;
+            free(node_label);
+
+            // Se há inicialização (AST_INIT), criar nó de atribuição separado
+            if (node->filho2 && node->filho2->tipo == AST_INIT)
+            {
+                // Criar rótulo de atribuição mostrando var = valor
+                char assign_label[256];
+                char *var_name = node->valor_str ? node->valor_str : "var";
+                char *init_value = ast_node_to_string_with_values(node->filho2->filho1);
+                snprintf(assign_label, sizeof(assign_label), "%s = %s", var_name, init_value);
+                
+                CFGNode *assign_node = criarCFGNode(CFG_NODE_STATEMENT, assign_label, node->filho2);
+                add_cfg_edge(stmt_node, assign_node, "");  // Linha pontilhada vazia
+                fragment.exit = assign_node;
+                free(init_value);
+            }
+            // Se há inicialização direta (AST_ASSIGN), criar nó de atribuição separado
+            else if (node->filho2 && node->filho2->tipo == AST_ASSIGN)
+            {
+                char *assign_label = ast_node_to_string_with_values(node->filho2);
+                CFGNode *assign_node = criarCFGNode(CFG_NODE_STATEMENT, assign_label, node->filho2);
+                add_cfg_edge(stmt_node, assign_node, "");  // Linha pontilhada vazia
+                fragment.exit = assign_node;
+                free(assign_label);
+            }
+
+            // Check if there are sibling nodes
+            if (node->prox)
+            {
+                CFGFragment sibling_frag = build_cfg_from_ast_recursive(node->prox, NULL, NULL);
+                if (sibling_frag.entry && sibling_frag.exit)
+                {
+                    add_cfg_edge(fragment.exit, sibling_frag.entry, NULL);
+                    fragment.exit = sibling_frag.exit;
+                }
             }
         }
         break;
@@ -1246,7 +1295,18 @@ void cfg_to_mermaid(AST *root_ast)
         CFGEdge *current_edge = current->edges;
         while (current_edge != NULL)
         {
-            fprintf(fp, "    %d -->", current->id);
+            fprintf(fp, "    %d ", current->id);
+            
+            // Se o rótulo está vazio, usar linha pontilhada
+            if (current_edge->label && strlen(current_edge->label) == 0)
+            {
+                fprintf(fp, "-.->"); // Linha pontilhada
+            }
+            else
+            {
+                fprintf(fp, "-->"); // Linha normal
+            }
+            
             if (current_edge->label && strlen(current_edge->label) > 0)
             {
                 fprintf(fp, "|%s|", current_edge->label);
