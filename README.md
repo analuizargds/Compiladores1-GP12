@@ -173,6 +173,14 @@ mmdc -i cfg.mmd -o fluxograma.svg
 - Visualização da AST e tabela de símbolos
 - Testes automatizados
 
+## Melhorias
+
+- Reconhecimento de arrays, ponteiros e casting
+- Regras do parser
+- Melhoria da construção da AST
+- Melhoria da conversão para CFG
+
+
 ## Solução de Problemas
 
 ### Erro de compilação
