@@ -3,7 +3,7 @@
 # Diretórios
 VALID_DIR="tests/valid"
 INVALID_DIR="tests/invalid"
-COMPILER="./exemplo"
+COMPILER="./CtoMMD"
 
 # Contadores
 TOTAL_TESTS=0
@@ -15,11 +15,16 @@ test_valid_files() {
     for file in $VALID_DIR/*.c; do
         TOTAL_TESTS=$((TOTAL_TESTS+1))
         filename=$(basename "$file")
+
+        echo "===== Testando arquivo: $file ====="
         
-        # Executa o compilador no arquivo de teste
-        $COMPILER "$file" > /dev/null 2>&1
-        
-        PASSED_TESTS=$((PASSED_TESTS+1))
+        $COMPILER "$file"
+        if [ $? -eq 0 ]; then
+            PASSED_TESTS=$((PASSED_TESTS+1))
+        else
+            FAILED_TESTS=$((FAILED_TESTS+1))
+            echo "Falha no arquivo válido: $filename"
+        fi
     done
 }
 
@@ -28,9 +33,11 @@ test_invalid_files() {
     for file in $INVALID_DIR/*.c; do
         TOTAL_TESTS=$((TOTAL_TESTS+1))
         filename=$(basename "$file")
+
+        echo "===== Testando arquivo: $file ====="
         
         # Executa o compilador no arquivo de teste
-        $COMPILER "$file" > /dev/null 2>&1
+        $COMPILER "$file"
         
         # Verifica o código de retorno - para arquivos inválidos, esperamos erro (código diferente de 0)
         if [ $? -ne 0 ]; then

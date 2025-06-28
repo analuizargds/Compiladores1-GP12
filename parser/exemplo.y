@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "../ast/ast.h"
 #include "../semantic/semantic.h"
+#include "../simbolos.h"
 
 int yylex(void);
 void yyerror(const char *s);
@@ -30,14 +31,16 @@ void report_unsupported_feature(const char* feature, int line) {
 %token STRUCT UNION ENUM TYPEDEF
 %token HEX CARACT
 %token INCREMENT DECREMENT
-%token PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
+%token PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN MOD_ASSIGN
+%token QUESTION
 %token AND OR NOT
 %token BITAND BITOR BITXOR BITNOT SHIFTLEFT SHIFTRIGHT
 
 // Tokens para construções não suportadas completamente
 %token LBRACKET RBRACKET INCLUDE POINTER AMPERSAND
 
-%right ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN
+%right ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN MOD_ASSIGN
+%left QUESTION
 %left OR
 %left AND
 %left BITOR
@@ -69,7 +72,7 @@ void report_unsupported_feature(const char* feature, int line) {
 %type <strValue> HEX
 
 %type <node> programa lista_declaracoes declaracao
-%type <node> stmt expr atrib_expr or_expr and_expr bitor_expr bitxor_expr
+%type <node> stmt expr atrib_expr ternary_expr or_expr and_expr bitor_expr bitxor_expr
 %type <node> bitand_expr equal_expr relacao_expr shift_expr add_expr mult_expr
 %type <node> unary_expr fator var chamada argumentos lista_args
 %type <node> declaracao_variavel lista_variaveis variavel
@@ -80,12 +83,19 @@ void report_unsupported_feature(const char* feature, int line) {
 %type <node> declaracao_tipo struct_declaracao union_declaracao enum_declaracao typedef_declaracao
 %type <node> tipo expr_stmt lista_identificadores
 %type <node> inicializador lista_inicializadores
-%type <node> for_parer for_init
 
 %%
 
 programa:
-    lista_declaracoes { root = $1; }
+    { 
+        /* Inicializar tabela de símbolos no início do programa */
+        iniciarTabelaSimbolos(); 
+    }
+    lista_declaracoes { 
+        root = $2; 
+        /* Finalizar tabela de símbolos no final */
+        finalizarTabelaSimbolos();
+    }
 ;
 
 lista_declaracoes:
@@ -105,14 +115,75 @@ declaracao:
     ;
 
 declaracao_tipo:
-    struct_declaracao { $$ = $1; }
-    | union_declaracao { $$ = $1; }
-    | enum_declaracao { $$ = $1; }
-    | typedef_declaracao { $$ = $1; }
+    struct_declaracao { 
+        /* Verificar se struct já foi declarada no escopo atual */
+        if ($1 && $1->valor_str) {
+            Simbolo *existente = buscarSimboloNoEscopoAtual($1->valor_str);
+            if (existente != NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Struct '%s' já declarada neste escopo", $1->valor_str);
+                yyerror(erro);
+            } else {
+                inserirSimbolo($1->valor_str, TIPO_STRUCT);
+            }
+        }
+        $$ = $1; 
+    }
+    | union_declaracao { 
+        /* Verificar se union já foi declarada no escopo atual */
+        if ($1 && $1->valor_str) {
+            Simbolo *existente = buscarSimboloNoEscopoAtual($1->valor_str);
+            if (existente != NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Union '%s' já declarada neste escopo", $1->valor_str);
+                yyerror(erro);
+            } else {
+                inserirSimbolo($1->valor_str, TIPO_UNION);
+            }
+        }
+        $$ = $1; 
+    }
+    | enum_declaracao { 
+        /* Verificar se enum já foi declarado no escopo atual */
+        if ($1 && $1->valor_str) {
+            Simbolo *existente = buscarSimboloNoEscopoAtual($1->valor_str);
+            if (existente != NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Enum '%s' já declarado neste escopo", $1->valor_str);
+                yyerror(erro);
+            } else {
+                inserirSimbolo($1->valor_str, TIPO_ENUM);
+            }
+        }
+        $$ = $1; 
+    }
+    | typedef_declaracao { 
+        /* Verificar se typedef já foi declarado no escopo atual */
+        if ($1 && $1->valor_str) {
+            Simbolo *existente = buscarSimboloNoEscopoAtual($1->valor_str);
+            if (existente != NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Typedef '%s' já declarado neste escopo", $1->valor_str);
+                yyerror(erro);
+            } else {
+                /* Para typedef, assumir o tipo base (seria determinado pela análise completa) */
+                inserirSimbolo($1->valor_str, TIPO_INT); /* Placeholder - tipo seria determinado pelo typedef */
+            }
+        }
+        $$ = $1; 
+    }
     ;
 
 switch_stmt:
-    SWITCH LPAREN expr RPAREN LBRACE case_list RBRACE { $$ = criarNoSwitch($3, $6); }
+    SWITCH LPAREN expr RPAREN LBRACE {
+        /* Iniciar novo escopo para o switch */
+        iniciarEscopo();
+    }
+    case_list RBRACE { 
+        /* Finalizar escopo do switch */
+        finalizarEscopo();
+        $$ = criarNoSwitch($3, $7); 
+    }
     | SWITCH LPAREN expr RPAREN error { 
         $$ = NULL; 
         yyerror("Estrutura switch incompleta ou inválida"); 
@@ -120,8 +191,14 @@ switch_stmt:
     ;
 
 for_stmt:
-    FOR LPAREN expr SEMICOLON expr SEMICOLON expr RPAREN stmt {
-        $$ = criarNoFor($3, $5, $7, $9);
+    FOR LPAREN {
+        /* Iniciar novo escopo para o for */
+        iniciarEscopo();
+    }
+    expr SEMICOLON expr SEMICOLON expr RPAREN stmt {
+        /* Finalizar escopo do for */
+        finalizarEscopo();
+        $$ = criarNoFor($4, $6, $8, $10);
     }
     | FOR LPAREN error RPAREN stmt {
         $$ = NULL;
@@ -129,19 +206,10 @@ for_stmt:
     }
 ;
 
-for_init:
-    expr { $$ = $1; }
-    | declaracao_variavel { $$ = $1; }
-    | /* vazio */ { $$ = NULL; }
-    ;
-
-for_parer:
-    expr { $$ = $1; }
-    | /* vazio */ { $$ = NULL; }
-    ;
-
 do_stmt:
-    DO stmt WHILE LPAREN expr RPAREN SEMICOLON { $$ = criarNoDoWhile($5, $2); }
+    DO stmt WHILE LPAREN expr RPAREN SEMICOLON { 
+        $$ = criarNoDoWhile($5, $2); 
+    }
     | DO stmt WHILE LPAREN error RPAREN SEMICOLON {
         $$ = NULL;
         yyerror("Expressão inválida na condição do do-while");
@@ -177,7 +245,37 @@ comandos_opt:
     ;
 
 declaracao_variavel:
-    tipo lista_variaveis { $$ = criarNoVarDecl($2->valor_str, criarNoType($1->valor_str)); }
+    tipo lista_variaveis { 
+        /* Processar cada variável na lista com o tipo especificado */
+        ASTNode *current = $2;
+        TipoSimbolo tipo_var = TIPO_ERRO;
+        
+        /* Converter string do tipo para TipoSimbolo */
+        if ($1 && $1->valor_str) {
+            if (strcmp($1->valor_str, "int") == 0) tipo_var = TIPO_INT;
+            else if (strcmp($1->valor_str, "float") == 0) tipo_var = TIPO_FLOAT;
+            else if (strcmp($1->valor_str, "char") == 0) tipo_var = TIPO_CHAR;
+            else if (strcmp($1->valor_str, "double") == 0) tipo_var = TIPO_DOUBLE;
+            else if (strcmp($1->valor_str, "void") == 0) tipo_var = TIPO_VOID;
+        }
+        
+        /* Percorrer lista de variáveis e inserir na tabela de símbolos */
+        while (current != NULL) {
+            if (current->valor_str) {
+                Simbolo *existente = buscarSimboloNoEscopoAtual(current->valor_str);
+                if (existente != NULL) {
+                    char erro[256];
+                    snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' já declarada neste escopo", current->valor_str);
+                    yyerror(erro);
+                } else {
+                    inserirSimbolo(current->valor_str, tipo_var);
+                }
+            }
+            current = current->prox;
+        }
+        
+        $$ = criarNoVarDecl($2->valor_str, criarNoType($1->valor_str)); 
+    }
     | tipo error { 
         $$ = NULL; 
         yyerror("Declaração de variável inválida"); 
@@ -190,12 +288,35 @@ tipo:
     | CHAR { $$ = criarNoType("char"); }
     | VOID { $$ = criarNoType("void"); }
     | DOUBLE { $$ = criarNoType("double"); }
-    | STRUCT ID { $$ = criarNoUnion("struct", $2); }
-    | UNION ID { $$ = criarNoUnion("union", $2); }
-    | ENUM ID { $$ = criarNoEnum($2); }
-    | tipo MULT {
-        $$ = NULL;
-        report_unsupported_feature("Ponteiros", yylineno);
+    | STRUCT ID { 
+        /* Verificar se struct foi declarada */
+        Simbolo *struct_sym = buscarSimbolo($2);
+        if (struct_sym == NULL || struct_sym->tipo != TIPO_STRUCT) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Struct '%s' não declarada", $2);
+            yyerror(erro);
+        }
+        $$ = criarNoUnion("struct", $2); 
+    }
+    | UNION ID { 
+        /* Verificar se union foi declarada */
+        Simbolo *union_sym = buscarSimbolo($2);
+        if (union_sym == NULL || union_sym->tipo != TIPO_UNION) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Union '%s' não declarada", $2);
+            yyerror(erro);
+        }
+        $$ = criarNoUnion("union", $2); 
+    }
+    | ENUM ID { 
+        /* Verificar se enum foi declarado */
+        Simbolo *enum_sym = buscarSimbolo($2);
+        if (enum_sym == NULL || enum_sym->tipo != TIPO_ENUM) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Enum '%s' não declarado", $2);
+            yyerror(erro);
+        }
+        $$ = criarNoEnum($2); 
     }
     ;
 
@@ -205,20 +326,38 @@ lista_variaveis:
     ;
 
 variavel:
-    ID { $$ = criarNoVar($1); }
-    | ID ASSIGN expr { $$ = criarNoAssign('=', criarNoVar($1), $3); }
-    | ID ASSIGN inicializador { $$ = criarNoAssign('=', criarNoVar($1), $3); }
-    | ID error { 
-        $$ = NULL; 
-        yyerror("Erro na declaração ou inicialização de variável"); 
+    ID { 
+        $$ = criarNoVar($1); 
     }
-    ;
+    | ID ASSIGN expr { 
+        ASTNode *var = criarNoVar($1);
+        ASTNode *assign = criarNoAssign('=', var, $3);
+        // Manter o nome da variável no nó principal para facilitar o processamento
+        assign->valor_str = strdup($1);
+        $$ = assign;
+    }
+    | ID ASSIGN inicializador { 
+        ASTNode *var = criarNoVar($1);
+        ASTNode *assign = criarNoAssign('=', var, $3);
+        // Manter o nome da variável no nó principal para facilitar o processamento
+        assign->valor_str = strdup($1);
+        $$ = assign;
+    }
 
 fun_declaracao:
-    tipo ID LPAREN parametros RPAREN composto_stmt { $$ = criarNoFuncDecl($2, $1, $4, $6); }
-    | tipo ID LPAREN parametros RPAREN error { 
-        $$ = NULL; 
-        yyerror("Corpo de função inválido ou ausente"); 
+    tipo ID LPAREN parametros RPAREN composto_stmt { 
+        /* Verificar se função já foi declarada no escopo atual */
+        if ($2) {
+            Simbolo *existente = buscarSimboloNoEscopoAtual($2);
+            if (existente != NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Função '%s' já declarada neste escopo", $2);
+                yyerror(erro);
+            } else {
+                inserirSimbolo($2, TIPO_FUNCAO);
+            }
+        }
+        $$ = criarNoFuncDecl($2, $1, $4, $6); 
     }
     ;
 
@@ -233,7 +372,20 @@ lista_parametros:
     ;
 
 param:
-    tipo ID { $$ = criarNoParam($2, $1); }
+    tipo ID { 
+        /* Verificar se parâmetro já foi declarado no escopo atual */
+        if ($2) {
+            Simbolo *existente = buscarSimboloNoEscopoAtual($2);
+            if (existente != NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Parâmetro '%s' já declarado neste escopo", $2);
+                yyerror(erro);
+            } else {
+                inserirSimbolo($2, TIPO_VARIAVEL);
+            }
+        }
+        $$ = criarNoParam($2, $1); 
+    }
     | tipo error { 
         $$ = NULL; 
         yyerror("Parâmetro inválido"); 
@@ -276,11 +428,8 @@ expr_stmt:
     ;
 
 composto_stmt:
-    LBRACE lista_declaracoes RBRACE { $$ = $2; }
-    | LBRACE RBRACE { $$ = NULL; }
-    | LBRACE error RBRACE { 
-        $$ = NULL; 
-        yyerror("Bloco de comandos com erro"); 
+    LBRACE comandos_opt RBRACE { 
+        $$ = $2; 
     }
     ;
 
@@ -294,7 +443,15 @@ if_stmt:
 ;
 
 while_stmt:
-    WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
+    WHILE LPAREN expr RPAREN {
+        /* Iniciar novo escopo para o while */
+        iniciarEscopo();
+    }
+    stmt { 
+        /* Finalizar escopo do while */
+        finalizarEscopo();
+        $$ = criarNoWhile($3, $6); 
+    }
     | WHILE LPAREN error RPAREN stmt { 
         $$ = NULL; 
         yyerror("Expressão condicional inválida no while"); 
@@ -315,36 +472,103 @@ expr:
     ;
 
 atrib_expr:
-    or_expr { $$ = $1; }
-    | var ASSIGN atrib_expr { $$ = criarNoAssign('=', $1, $3); }
+    ternary_expr { $$ = $1; }
+    | var ASSIGN atrib_expr { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoAssign('=', $1, $3); 
+    }
     | var PLUS_ASSIGN atrib_expr { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
         $$ = criarNoAssign('=', 
             $1, 
             criarNoBinOp("+", $1, $3)
         ); 
     }
     | var MINUS_ASSIGN atrib_expr { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
         $$ = criarNoAssign('=', 
             $1, 
             criarNoBinOp("-", $1, $3)
         ); 
     }
     | var MULT_ASSIGN atrib_expr { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
         $$ = criarNoAssign('=', 
             $1, 
             criarNoBinOp("*", $1, $3)
         ); 
     }
     | var DIV_ASSIGN atrib_expr { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
         $$ = criarNoAssign('=', 
             $1, 
             criarNoBinOp("/", $1, $3)
+        ); 
+    }
+    | var MOD_ASSIGN atrib_expr { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoAssign('=', 
+            $1, 
+            criarNoBinOp("%", $1, $3)
         ); 
     }
     | var error { 
         $$ = NULL; 
         yyerror("Operação de atribuição inválida"); 
     }
+    ;
+
+ternary_expr:
+    or_expr { $$ = $1; } 
+    | or_expr QUESTION expr COLON ternary_expr { $$ = criarNoTernario($1, $3, $5);}
     ;
 
 or_expr:
@@ -407,8 +631,30 @@ mult_expr:
 
 unary_expr:
     fator { $$ = $1; }
-    | INCREMENT var { $$ = criarNoUnaryOp("++", $2); }
-    | DECREMENT var { $$ = criarNoUnaryOp("--", $2); }
+    | INCREMENT var { 
+        /* Verificar se variável foi declarada */
+        if ($2 && $2->valor_str) {
+            Simbolo *sym = buscarSimbolo($2->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $2->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoUnaryOp("++", $2); 
+    }
+    | DECREMENT var { 
+        /* Verificar se variável foi declarada */
+        if ($2 && $2->valor_str) {
+            Simbolo *sym = buscarSimbolo($2->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $2->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoUnaryOp("--", $2); 
+    }
     | MINUS unary_expr %prec UMINUS { $$ = criarNoUnaryOp("-", $2); }
     | PLUS unary_expr %prec UPLUS { $$ = criarNoUnaryOp("+", $2); }
     | NOT unary_expr { $$ = criarNoUnaryOp("!", $2); }
@@ -424,13 +670,55 @@ fator:
     | var { $$ = $1; }
     | chamada { $$ = $1; }
     | LPAREN expr RPAREN { $$ = $2; }
-    | var INCREMENT { $$ = criarNoUnaryOp("++", $1); }
-    | var DECREMENT { $$ = criarNoUnaryOp("--", $1); }
+    | var INCREMENT { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoUnaryOp("++", $1); 
+    }
+    | var DECREMENT { 
+        /* Verificar se variável foi declarada */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym == NULL) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoUnaryOp("--", $1); 
+    }
 ;
 
 var:
-    ID { $$ = criarNoVar($1); }
-    | var DOT ID { $$ = criarNoVar($3); }
+    ID { 
+        /* Verificar se variável foi declarada */
+        Simbolo *sym = buscarSimbolo($1);
+        if (sym == NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Variável '%s' não declarada", $1);
+            yyerror(erro);
+        }
+        $$ = criarNoVar($1); 
+    }
+    | var DOT ID { 
+        /* Para acesso a membros, verificar se o tipo é struct/union */
+        if ($1 && $1->valor_str) {
+            Simbolo *sym = buscarSimbolo($1->valor_str);
+            if (sym != NULL && sym->tipo != TIPO_STRUCT && sym->tipo != TIPO_UNION) {
+                char erro[256];
+                snprintf(erro, sizeof(erro), "Erro semântico: '%s' não é uma struct ou union", $1->valor_str);
+                yyerror(erro);
+            }
+        }
+        $$ = criarNoVar($3); 
+    }
     | ID '[' expr ']' {
         $$ = NULL;
         report_unsupported_feature("Arrays", yylineno);
@@ -438,7 +726,20 @@ var:
 ;
 
 chamada:
-    ID LPAREN argumentos RPAREN { $$ = criarNoCall($1, $3); }
+    ID LPAREN argumentos RPAREN { 
+        /* Verificar se função foi declarada */
+        Simbolo *sym = buscarSimbolo($1);
+        if (sym == NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Função '%s' não declarada", $1);
+            yyerror(erro);
+        } else if (sym->tipo != TIPO_FUNCAO) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: '%s' não é uma função", $1);
+            yyerror(erro);
+        }
+        $$ = criarNoCall($1, $3); 
+    }
     | ID LPAREN error RPAREN { 
         $$ = NULL; 
         yyerror("Lista de argumentos inválida"); 
@@ -460,7 +761,27 @@ lista_args:
 ;
 
 typedef_declaracao:
-    TYPEDEF tipo ID SEMICOLON { $$ = criarNoVar($3); }
+    TYPEDEF tipo ID SEMICOLON { 
+        /* Verificar se o identificador já existe no escopo atual */
+        Simbolo *existente = buscarSimboloNoEscopoAtual($3);
+        if (existente != NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Identificador '%s' já declarado neste escopo", $3);
+            yyerror(erro);
+        } else {
+            /* Determinar o tipo baseado no nó AST */
+            TipoSimbolo tipoSimbolo = TIPO_ERRO;
+            if ($2 && $2->valor_str) {
+                if (strcmp($2->valor_str, "int") == 0) tipoSimbolo = TIPO_INT;
+                else if (strcmp($2->valor_str, "float") == 0) tipoSimbolo = TIPO_FLOAT;
+                else if (strcmp($2->valor_str, "char") == 0) tipoSimbolo = TIPO_CHAR;
+                else if (strcmp($2->valor_str, "double") == 0) tipoSimbolo = TIPO_DOUBLE;
+                else if (strcmp($2->valor_str, "void") == 0) tipoSimbolo = TIPO_VOID;
+            }
+            inserirSimbolo($3, tipoSimbolo);
+        }
+        $$ = criarNoVar($3); 
+    }
     | TYPEDEF error SEMICOLON { 
         $$ = NULL; 
         yyerror("Declaração typedef inválida"); 
@@ -468,12 +789,45 @@ typedef_declaracao:
 ;
 
 lista_identificadores:
-    ID { $$ = criarNoVar($1); }
-    | lista_identificadores COMMA ID { $$ = concatenarStmt($1, criarNoVar($3)); }
+    ID { 
+        /* Para enums, inserir o identificador como TIPO_ENUM */
+        Simbolo *existente = buscarSimboloNoEscopoAtual($1);
+        if (existente != NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Enumerador '%s' já declarado neste escopo", $1);
+            yyerror(erro);
+        } else {
+            inserirSimbolo($1, TIPO_ENUM);
+        }
+        $$ = criarNoVar($1); 
+    }
+    | lista_identificadores COMMA ID { 
+        /* Para enums, inserir o identificador como TIPO_ENUM */
+        Simbolo *existente = buscarSimboloNoEscopoAtual($3);
+        if (existente != NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Enumerador '%s' já declarado neste escopo", $3);
+            yyerror(erro);
+        } else {
+            inserirSimbolo($3, TIPO_ENUM);
+        }
+        $$ = concatenarStmt($1, criarNoVar($3)); 
+    }
     ;
 
 struct_declaracao:
-    STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoUnion("struct", $2); }
+    STRUCT ID LBRACE lista_declaracoes RBRACE SEMICOLON { 
+        /* Verificar se struct já foi declarada no escopo atual */
+        Simbolo *existente = buscarSimboloNoEscopoAtual($2);
+        if (existente != NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Struct '%s' já declarada neste escopo", $2);
+            yyerror(erro);
+        } else {
+            inserirSimbolo($2, TIPO_STRUCT);
+        }
+        $$ = criarNoUnion("struct", $2); 
+    }
     | STRUCT ID LBRACE error RBRACE SEMICOLON { 
         $$ = NULL; 
         yyerror("Corpo de struct inválido"); 
@@ -481,7 +835,18 @@ struct_declaracao:
     ;
 
 union_declaracao:
-    UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON { $$ = criarNoUnion("union", $2); }
+    UNION ID LBRACE lista_declaracoes RBRACE SEMICOLON { 
+        /* Verificar se union já foi declarada no escopo atual */
+        Simbolo *existente = buscarSimboloNoEscopoAtual($2);
+        if (existente != NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Union '%s' já declarada neste escopo", $2);
+            yyerror(erro);
+        } else {
+            inserirSimbolo($2, TIPO_UNION);
+        }
+        $$ = criarNoUnion("union", $2); 
+    }
     | UNION ID LBRACE error RBRACE SEMICOLON { 
         $$ = NULL; 
         yyerror("Corpo de union inválido"); 
@@ -489,7 +854,18 @@ union_declaracao:
     ;
 
 enum_declaracao:
-    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON { $$ = criarNoEnum($2); }
+    ENUM ID LBRACE lista_identificadores RBRACE SEMICOLON { 
+        /* Verificar se enum já foi declarado no escopo atual */
+        Simbolo *existente = buscarSimboloNoEscopoAtual($2);
+        if (existente != NULL) {
+            char erro[256];
+            snprintf(erro, sizeof(erro), "Erro semântico: Enum '%s' já declarado neste escopo", $2);
+            yyerror(erro);
+        } else {
+            inserirSimbolo($2, TIPO_ENUM);
+        }
+        $$ = criarNoEnum($2); 
+    }
     | ENUM ID LBRACE error RBRACE SEMICOLON { 
         $$ = NULL; 
         yyerror("Lista de enumeradores inválida"); 

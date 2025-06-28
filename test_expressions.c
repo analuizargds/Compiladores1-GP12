@@ -17,7 +17,9 @@ float calcCircleArea(float radius)
 int main()
 {
     // Declarações de variáveis para teste
-    int a = 10, b = 5, c = 2;
+    int a = 10;
+    int b = 5;
+    int c = 2;
     float x = 3.14, y = 2.71;
     char ch = 'A';
 
@@ -68,10 +70,6 @@ int main()
     int bitNot = ~a;         // NOT bit a bit
     int leftShift = a << 1;  // Deslocamento à esquerda
     int rightShift = a >> 1; // Deslocamento à direita
-
-    // Expressões com conversão de tipo
-    float floatResult = (float)a / b; // Cast explícito
-    int intResult = (int)x;           // Cast de float para int
 
     // Expressões com chamadas de função
     int square = calcSquare(a);

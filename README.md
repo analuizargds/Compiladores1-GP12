@@ -1,4 +1,4 @@
-# Compilador C Simplificado
+# CtoMMD
 
 Este repositório contém a implementação de um compilador simplificado para a linguagem C, desenvolvido como parte do projeto da disciplina de Compiladores.
 
@@ -16,8 +16,10 @@ O projeto está organizado da seguinte forma:
 │   ├── valid/          # Testes com código válido
 │   └── invalid/        # Testes com código inválido
 ├── visualization/      # Visualizações geradas da AST e tabela de símbolos
-├── exemplo             # Executável principal do compilador
+├── exemplo             # CtoMMD
 ├── Makefile            # Regras de compilação
+├── cfg_design.md       # Documentação de explicação para funcionamento da conversão para fluxograma
+├── README.md           # Este arquivo de leitura
 ├── run_tests.sh        # Script para automação de testes
 ├── simbolos.c          # Implementação da tabela de símbolos
 ├── simbolos.h          # Cabeçalho da tabela de símbolos
@@ -29,43 +31,122 @@ O projeto está organizado da seguinte forma:
 - GCC (GNU Compiler Collection)
 - Flex (Fast Lexical Analyzer)
 - Bison (GNU Parser Generator)
-- Graphviz (opcional, para visualização gráfica)
+- MermaidCLI (opcional, para visualização gráfica)
+- Make
 
-## Compilação
+O Mermaid CLI é a opção prática para converter os arquivos diretmanete na máquina, porém pode ser substituido por um Navegador Web com acesso à internet ou ainda um editor que tenha suporte à arquivos mermaid (.mmd), como VS Code, Obsidian.
+Informações adicionais:
 
-Para compilar o projeto, execute:
+- **GitHub**: [mermaid-js/mermaid-cli](https://github.com/mermaid-js/mermaid-cli)
+- **Documentação**: [Mermaid CLI Documentation](https://github.com/mermaid-js/mermaid-cli#readme)
+
+## Instalação do Mermaid CLI
+
+O Mermaid CLI permite converter arquivos `.mmd` diretamente para imagens PNG, SVG ou PDF.
+
+### Instalação via npm
 
 ```bash
+npm install -g @mermaid-js/mermaid-cli
+```
+
+### Verificar instalação
+
+```bash
+mmdc --version
+```
+
+## Instalação do compilador
+
+1. Clone o repositório
+
+```bash
+git clone https://github.com/analuizargds/Compiladores1-GP12.git
+cd Compiladores1-GP12
+```
+
+2. Compile o projeto
+
+```bash
+make clean
 make
 ```
 
-Isso irá gerar o executável `exemplo` que pode ser usado para compilar arquivos C simplificados.
+Isso criará o executável `CtoMMD` no diretório raiz.
 
-## Testes
+## Uso
 
-O projeto inclui um conjunto de testes automatizados para verificar o funcionamento do compilador. Para executar os testes:
-
-```bash
-make test
-```
-
-Isso executará o script `run_tests.sh` que testará o compilador com arquivos válidos e inválidos localizados nos diretórios `tests/valid` e `tests/invalid`.
-
-## Visualização
-
-Para gerar visualizações da AST (Árvore Sintática Abstrata) e da tabela de símbolos:
+### 1. Compilar código C para Mermaid
 
 ```bash
-make visualize
+./CtoMMD arquivo_entrada.c
 ```
 
-Isso executará o script `visualize.sh` que gerará representações visuais em formatos DOT e JSON no diretório `visualization/`. Se o Graphviz estiver instalado, também serão geradas imagens PNG.
+Isso gerará um arquivo `cfg.mmd` contendo o fluxograma em formato Mermaid.
 
-Para verificar se o Graphviz está instalado:
+### 2. Usar o Makefile para compilação e conversão automática
+
+#### Gerar fluxograma e converter para PNG
 
 ```bash
-make check-graphviz
+make compPng ARQUIVO=entrada.c
 ```
+
+#### Gerar fluxograma e converter para PDF
+
+```bash
+make compPdf ARQUIVO=entrada.c
+```
+
+#### Limpar arquivos gerados
+
+```bash
+make clean        # Remove arquivos objeto e executável
+make cleanImg     # Remove arquivos PNG e PDF gerados
+make cleanAll     # Remove todos os arquivos gerados
+```
+
+### 3. Visualizar o fluxograma manualmente
+
+#### Opção A: Visualizador online
+
+1. Abra um visualizador Mermaid online:
+   - [Mermaid Live Editor](https://mermaid.live/)
+   - [Mermaid Chart](https://www.mermaidchart.com/)
+
+2. Copie o conteúdo do arquivo `cfg.mmd` e cole no editor
+
+3. O fluxograma será renderizado automaticamente
+
+#### Opção B: VS Code com extensão Mermaid
+
+1. Instale a extensão "Mermaid Preview" no VS Code
+2. Abra o arquivo `cfg.mmd` no VS Code
+3. Use Ctrl+Shift+P e digite "Mermaid: Preview"
+
+#### Opção C: Mermaid CLI (conversão manual)
+
+```bash
+# Para PNG
+mmdc -i cfg.mmd -o fluxograma.png
+
+# Para PDF
+mmdc -i cfg.mmd -o fluxograma.pdf
+
+# Para SVG
+mmdc -i cfg.mmd -o fluxograma.svg
+```
+
+## Tipos de Nós no Fluxograma
+
+| Tipo | Forma | Cor | Descrição |
+|------|-------|-----|-----------|
+| Início/Fim | Oval `([texto])` | Verde claro | Pontos de entrada e saída da função |
+| Decisão | Losango `{texto}` | Amarelo | Condições (if, while, for) |
+| Processo | Retângulo `[texto]` | Azul claro | Declarações, atribuições, instruções |
+| Função | Retângulo duplo `[[texto]]` | Roxo claro | Chamadas de função |
+| Retorno | Retângulo `[texto]` | Laranja | Instruções return |
+| Junção | Círculo pequeno `(( ))` | Cinza | Convergência de fluxos |
 
 ## Arquivos de Teste
 
@@ -92,64 +173,34 @@ make check-graphviz
 - Visualização da AST e tabela de símbolos
 - Testes automatizados
 
-## Limpeza
+## Melhorias
 
-Para limpar os arquivos gerados:
+- Reconhecimento de arrays, ponteiros e casting
+- Regras do parser
+- Melhoria da construção da AST
+- Melhoria da conversão para CFG
 
-```bash
-make clean
-```
 
-Para limpar e reconstruir tudo:
+## Solução de Problemas
 
-```bash
-make rebuild
-```
+### Erro de compilação
+
+- Verifique se todos os pré-requisitos estão instalados
+- Execute `make clean` antes de `make`
+
+### Arquivo cfg.mmd não gerado
+
+- Verifique se o arquivo C de entrada existe
+- Verifique se há erros de sintaxe no código C
+
+### Fluxograma não renderiza
+
+- Verifique se o conteúdo do arquivo cfg.mmd está correto
+- Para Linux, não execute como root, há um [problema conhecido](https://github.com/mermaid-js/mermaid-cli/blob/11.6.0/docs/linux-sandbox-issue.md)
+- Teste em diferentes visualizadores Mermaid
 
 ## Contribuidores
 
-<div  class="HomeProfiles" style="justify-content: center; display: flex; flex-direction: column">
-
-<a href="https://github.com/analuizargds" target="_blank">
-    <figure>
-      <img  src="https://github.com/analuizargds.png" alt="Foto da Ana Luiza Rodrigues" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Ana Luiza Rodrigues</figcaption>
-    </figure>
-  </a>
-
-<a href="https://github.com/WonnzDA" target="_blank">
-    <figure>
-      <img  src="https://github.com/WonnzDA.png" alt="Foto da Julia Lopes" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Julia Lopes</figcaption>
-    </figure>
-  </a>
-
-<a href="https://github.com/LuaMedeiros" target="_blank">
-    <figure>
-      <img  src="https://github.com/LuaMedeiros.png" alt="Foto da Luana Medeiros" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Luana Medeiros</figcaption>
-    </figure>
-  </a>
-
-<a href="https://github.com/Katuner" target="_blank">
-    <figure>
-      <img  src="https://github.com/Katuner.png" alt="Foto do Lucas Meireles" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Lucas Meireles</figcaption>
-    </figure>
-  </a>
-
-<a href="https://github.com/milenaaires" target="_blank">
-    <figure>
-      <img  src="https://github.com/milenaaires.png" alt="Foto da Milena Aires" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Milena Aires</figcaption>
-    </figure>
-  </a>
-
-<a href="https://github.com/Rodrigomfab88" target="_blank">
-    <figure>
-      <img  src="https://github.com/Rodrigomfab88.png" alt="Foto do Rodrigo Mattos" width="220px" style="border-radius: 6%">
-      <figcaption style="font-weight: bold; color: #000000;">Rodrigo Mattos</figcaption>
-    </figure>
-  </a>
-
-</div>
+| ![Ana Luiza Rodrigues](https://github.com/analuizargds.png) | ![Julia Lopes](https://github.com/WonnzDA.png) | ![Luana Medeiros](https://github.com/LuaMedeiros.png) | ![Lucas Meireles](https://github.com/Katuner.png) | ![Milena Aires](https://github.com/milenaaires.png) | ![Rodrigo Mattos](https://github.com/Rodrigomfab88.png) |
+|:----------------:|:--------------------:|:---------------------:|:-------------------:|:-------------------:|:-------------------:|
+|[Ana Luiza Rodrigues](https://github.com/analuizargds)|[Julia Lopes](https://github.com/WonnzDA)|[Luana Medeiros](https://github.com/LuaMedeiros)|[Lucas Meireles](https://github.com/Katuner)| [Milena Aires](https://github.com/milenaaires)|[Rodrigo Mattos](https://github.com/Rodrigomfab88)|
